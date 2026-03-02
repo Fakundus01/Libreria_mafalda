@@ -1,38 +1,39 @@
-# Deploy backend en Render (Web Service)
+# Deploy de frontend en Render (Static Site)
 
-Guía para desplegar **apps/api** como servicio web.
+Esta guía aplica **solo al frontend** (sin backend).
 
-## Configuración
+## Configuración base
 
-- **Service Type:** Web Service
-- **Root Directory:** `apps/api`
-- **Build Command:** `pip install -r requirements.txt`
-- **Start Command:** `gunicorn wsgi:app`
+- **Root Directory:** `apps/web`
+- **Build Command:** `npm run build`
+- **Publish Directory:** `dist`
 
 ## Variables de entorno
 
-- `FLASK_ENV=production`
-- `SECRET_KEY=<valor-seguro>`
-- `DATABASE_URL=<internal postgres url>`
-- `CORS_ORIGINS=<url frontend, separadas por coma si hay varias>`
-- `LOG_LEVEL=INFO`
+No son obligatorias para este demo.
 
-> El backend normaliza automáticamente `postgres://` a `postgresql://`.
+## Pasos
 
-## Migraciones en producción
-
-Estrategia segura recomendada:
-
-1. Deploy del servicio.
-2. Ejecutar manualmente migraciones desde Shell de Render:
-   ```bash
-   flask --app manage.py db upgrade
-   ```
-
-Alternativa: usar **Release Command** con `flask --app manage.py db upgrade` si el flujo de tu equipo lo permite.
+1. Crear un nuevo servicio en Render: **Static Site**.
+2. Conectar el repositorio.
+3. Configurar:
+   - Root Directory: `apps/web`
+   - Build Command: `npm run build`
+   - Publish Directory: `dist`
+4. Guardar y desplegar.
 
 ## Troubleshooting
 
-- **Error de conexión DB:** verificar credenciales en `DATABASE_URL` y red interna del servicio Postgres.
-- **Errores CORS:** revisar `CORS_ORIGINS` y asegurar que incluya el dominio frontend con protocolo.
-- **`ModuleNotFoundError`:** confirmar que Root Directory sea `apps/api`.
+### 404 al recargar rutas (ej. `/catalogo`)
+
+Al ser SPA con React Router, configurar **Rewrite/Fallback**:
+
+- Source: `/*`
+- Destination: `/index.html`
+- Action: `Rewrite`
+
+Esto permite que Render sirva `index.html` para rutas del cliente.
+
+### Falló el build por versión de Node
+
+Definir versión estable (18+ o 20+) en Render usando `NODE_VERSION` en Environment si fuera necesario.
