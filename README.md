@@ -1,31 +1,14 @@
-# Librería Mafalda - Frontend Demo
+# Librería Mafalda - Monorepo
 
-Landing one-page demo desarrollada con **Vite + React + Tailwind CSS** para presentar propuesta web de Librería Mafalda.
+Proyecto demo comercial con frontend y backend separados.
 
-## Requisitos
+## Estructura
 
-- Node.js 18+
-- npm
+- `apps/web`: landing frontend (Vite + React + Tailwind)
+- `apps/api`: backend MVP (Flask + SQLAlchemy + Alembic + PostgreSQL)
 
-## Ejecutar en local
+## Documentación
 
-```bash
-cd apps/web
-npm install
-npm run dev
-```
-
-Abrir en navegador: `http://localhost:5173`
-
-## Build de producción
-
-```bash
-cd apps/web
-npm run build
-```
-
-El sitio estático generado queda en: `apps/web/dist`
-
-## Deploy en Render (Static Site)
-
-Ver guía detallada en [`docs/DEPLOY_RENDER.md`](docs/DEPLOY_RENDER.md).
+- Frontend deploy: `apps/web/README.md`
+- API endpoints: `docs/API.md`
+- Backend deploy en Render: `docs/DEPLOY_RENDER.md`
