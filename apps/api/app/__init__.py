@@ -3,10 +3,13 @@ import logging
 from flask import Flask
 
 from . import models  # noqa: F401
+from .admin.routes import admin_bp
 from .api.routes import api_bp
 from .core.config import get_config
 from .core.errors import register_error_handlers
 from .core.extensions import cors, db, migrate
+from .ecommerce.routes import ecommerce_bp
+from .payments.routes import payments_bp
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -29,6 +32,12 @@ def create_app(config_name: str | None = None) -> Flask:
     )
 
     app.register_blueprint(api_bp)
+
+    if app.config['ENABLE_ECOMMERCE']:
+        app.register_blueprint(ecommerce_bp)
+        app.register_blueprint(payments_bp)
+        app.register_blueprint(admin_bp)
+
     register_error_handlers(app)
 
     @app.get('/health')

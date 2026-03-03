@@ -2,6 +2,9 @@ const rawPhone = '01131875770';
 const whatsappPhone = '541131875770';
 const address = 'Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires';
 
+export const ecommerceEnabled = (import.meta.env.VITE_ENABLE_ECOMMERCE || 'false').toLowerCase() === 'true';
+export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 export const siteConfig = {
   name: 'Librería Mafalda',
   tagline: 'Tu librería de barrio en Villa Maipú',

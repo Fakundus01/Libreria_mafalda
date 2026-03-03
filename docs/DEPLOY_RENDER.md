@@ -14,7 +14,12 @@ Esta guía aplica al backend Flask ubicado en `apps/api`.
 
 > `wsgi.py` expone `app = create_app()`, por eso el entrypoint para Gunicorn es `wsgi:app`.
 
-## Variables de entorno
+- `FLASK_ENV=production`
+- `SECRET_KEY=<secret>`
+- `DATABASE_URL=<render postgres url>`
+- `CORS_ORIGINS=https://<frontend>.onrender.com`
+- `LOG_LEVEL=INFO`
+- `ENABLE_ECOMMERCE=true|false`
 
 Configurar al menos:
 

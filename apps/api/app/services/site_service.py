@@ -8,4 +8,5 @@ def get_site_data():
         'phone': current_app.config['SITE_PHONE'],
         'email': current_app.config['SITE_EMAIL'],
         'hours': current_app.config['SITE_HOURS'],
+        'enable_ecommerce': current_app.config['ENABLE_ECOMMERCE'],
     }
