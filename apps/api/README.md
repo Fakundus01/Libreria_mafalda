@@ -27,6 +27,10 @@ cp .env.example .env
 - `DATABASE_URL` (PostgreSQL)
 - `CORS_ORIGINS` (separado por comas)
 - `LOG_LEVEL`
+- `SITE_NAME` (opcional)
+- `SITE_ADDRESS` (opcional)
+- `SITE_PHONE` (opcional)
+- `SITE_EMAIL` (opcional)
 
 > Nota: si Render entrega `postgres://...`, el backend lo normaliza automáticamente a `postgresql://...`.
 
@@ -67,3 +71,5 @@ cd apps/api
 source .venv/bin/activate
 pytest
 ```
+
+> Alternativa explícita (si tu shell no toma `pytest.ini`): `PYTHONPATH=. pytest`.

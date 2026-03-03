@@ -19,10 +19,13 @@ class Config:
     _cors = os.getenv('CORS_ORIGINS', 'http://localhost:5173')
     CORS_ORIGINS = [origin.strip() for origin in _cors.split(',') if origin.strip()]
 
-    SITE_NAME = 'Librería Mafalda'
-    SITE_ADDRESS = 'Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires'
-    SITE_PHONE = '1123971452' #'01131875770'
-    SITE_EMAIL = 'facumoreno2001@gmail.com'  # 'mafaldalibreria@hotmail.com'
+    SITE_NAME = os.getenv('SITE_NAME', 'Librería Mafalda')
+    SITE_ADDRESS = os.getenv(
+        'SITE_ADDRESS',
+        'Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires',
+    )
+    SITE_PHONE = os.getenv('SITE_PHONE', '01131875770')
+    SITE_EMAIL = os.getenv('SITE_EMAIL', 'mafaldalibreria@hotmail.com')
     SITE_HOURS = [
         {'day': 'Lunes a viernes', 'time': '9:00 a 15:00'},
         {'day': 'Sábados', 'time': '9:00 a 13:00'},
