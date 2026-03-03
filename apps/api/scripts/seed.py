@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from decimal import Decimal
+
 from app import create_app
 from app.core.extensions import db
 from app.models import ContactMessage, Product, ProductImage

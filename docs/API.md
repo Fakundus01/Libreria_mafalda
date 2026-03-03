@@ -2,6 +2,11 @@
 
 Base URL local: `http://localhost:5000`
 
+## Feature flag e-commerce
+
+- `ENABLE_ECOMMERCE=false`: solo quedan activos `/health`, `/api/site`, `/api/contact`.
+- `ENABLE_ECOMMERCE=true`: se habilitan rutas de productos, pedidos, pagos y admin.
+
 ## Feature flag
 
 - `ENABLE_ECOMMERCE=false`: quedan activos `/health`, `/api/site`, `/api/contact`.

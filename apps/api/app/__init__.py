@@ -4,6 +4,7 @@ from flask import Flask
 
 from . import models  # noqa: F401
 from .admin.routes import admin_bp
+from .admin.routes import admin_bp
 from .api.routes import api_bp
 from .auth.routes import auth_bp
 from .core.config import get_config

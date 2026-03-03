@@ -11,6 +11,12 @@ def str_to_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
 
+def str_to_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 class Config:
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
@@ -59,6 +65,10 @@ class Config:
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite+pysqlite:///:memory:'
+    ENABLE_ECOMMERCE = True
+    ADMIN_EMAIL = 'admin@test.com'
+    ADMIN_PASSWORD = 'secret123'
+    ADMIN_JWT_SECRET = 'test-secret'
     ENABLE_ECOMMERCE = True
     ADMIN_EMAIL = 'admin@test.com'
     ADMIN_PASSWORD = 'secret123'

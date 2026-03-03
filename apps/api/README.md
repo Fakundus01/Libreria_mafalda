@@ -49,3 +49,5 @@ flask --app manage.py db upgrade
 ```bash
 pytest
 ```
+
+> Alternativa explícita (si tu shell no toma `pytest.ini`): `PYTHONPATH=. pytest`.
