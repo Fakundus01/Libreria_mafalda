@@ -43,7 +43,10 @@ flask --app manage.py run --debug
 - `DATABASE_URL`
 - `CORS_ORIGINS`
 - `LOG_LEVEL`
-- `ENABLE_ECOMMERCE=true|false`
+- `SITE_NAME` (opcional)
+- `SITE_ADDRESS` (opcional)
+- `SITE_PHONE` (opcional)
+- `SITE_EMAIL` (opcional)
 
 ### Site config
 
@@ -93,8 +96,4 @@ python scripts/seed.py
 pytest
 ```
 
-Alternativa explícita:
-
-```bash
-PYTHONPATH=. pytest
-```
+> Alternativa explícita (si tu shell no toma `pytest.ini`): `PYTHONPATH=. pytest`.

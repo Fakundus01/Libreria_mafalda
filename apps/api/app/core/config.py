@@ -25,10 +25,11 @@ class Config:
     _cors = os.getenv('CORS_ORIGINS', 'http://localhost:5173')
     CORS_ORIGINS = [origin.strip() for origin in _cors.split(',') if origin.strip()]
 
-    ENABLE_ECOMMERCE = str_to_bool(os.getenv('ENABLE_ECOMMERCE'), default=False)
-
     SITE_NAME = os.getenv('SITE_NAME', 'Librería Mafalda')
-    SITE_ADDRESS = os.getenv('SITE_ADDRESS', 'Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires')
+    SITE_ADDRESS = os.getenv(
+        'SITE_ADDRESS',
+        'Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires',
+    )
     SITE_PHONE = os.getenv('SITE_PHONE', '01131875770')
     SITE_EMAIL = os.getenv('SITE_EMAIL', 'mafaldalibreria@hotmail.com')
     SITE_HOURS = [
