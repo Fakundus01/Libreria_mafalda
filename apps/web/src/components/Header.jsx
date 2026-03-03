@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ecommerceEnabled } from '../config/site';
 import Container from './Container';
 
 function Header({ site }) {
@@ -14,9 +15,16 @@ function Header({ site }) {
               {item.label}
             </a>
           ))}
-          <Link to="/catalogo" className="transition hover:text-stone-950">
-            Catálogo
-          </Link>
+          {ecommerceEnabled ? (
+            <>
+              <Link to="/shop" className="transition hover:text-stone-950">Tienda</Link>
+              <Link to="/cart" className="transition hover:text-stone-950">Carrito</Link>
+              <Link to="/prints" className="transition hover:text-stone-950">Impresiones</Link>
+              <Link to="/login" className="transition hover:text-stone-950">Ingresar</Link>
+            </>
+          ) : (
+            <Link to="/catalogo" className="transition hover:text-stone-950">Catálogo</Link>
+          )}
         </nav>
       </Container>
     </header>

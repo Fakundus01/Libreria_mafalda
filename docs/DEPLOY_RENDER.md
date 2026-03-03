@@ -1,39 +1,36 @@
-# Deploy de frontend en Render (Static Site)
+# Deploy backend en Render (Web Service)
 
-Esta guía aplica **solo al frontend** (sin backend).
+- Root Directory: `apps/api`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn wsgi:app`
 
-## Configuración base
+## Variables mínimas
 
-- **Root Directory:** `apps/web`
-- **Build Command:** `npm run build`
-- **Publish Directory:** `dist`
+- `FLASK_ENV=production`
+- `SECRET_KEY`
+- `DATABASE_URL`
+- `CORS_ORIGINS`
+- `ENABLE_ECOMMERCE=true|false`
 
-## Variables de entorno
+## Variables ecommerce/impresiones
 
-No son obligatorias para este demo.
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `ADMIN_JWT_EXPIRES_MINUTES`
+- `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_BASE_URL`
+- `EMAIL_PROVIDER`, `EMAIL_FROM`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`
+- `DELIVERY_ALLOWED_AREAS`
 
-## Pasos
+## Webhook Mercado Pago
 
-1. Crear un nuevo servicio en Render: **Static Site**.
-2. Conectar el repositorio.
-3. Configurar:
-   - Root Directory: `apps/web`
-   - Build Command: `npm run build`
-   - Publish Directory: `dist`
-4. Guardar y desplegar.
+`https://<tu-backend>.onrender.com/api/payments/mercadopago/webhook`
 
-## Troubleshooting
+Enviar `x-webhook-secret` con valor `MP_WEBHOOK_SECRET`.
 
-### 404 al recargar rutas (ej. `/catalogo`)
+## Migraciones
 
-Al ser SPA con React Router, configurar **Rewrite/Fallback**:
+```bash
+cd apps/api
+flask --app manage.py db upgrade
+python scripts/seed.py
+```
 
-- Source: `/*`
-- Destination: `/index.html`
-- Action: `Rewrite`
-
-Esto permite que Render sirva `index.html` para rutas del cliente.
-
-### Falló el build por versión de Node
-
-Definir versión estable (18+ o 20+) en Render usando `NODE_VERSION` en Environment si fuera necesario.
+(En Render, sugerido manual/release command separado del start command.)

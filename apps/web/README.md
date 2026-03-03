@@ -1,22 +1,22 @@
 # Librería Mafalda Web (Frontend)
 
-Demo one-page hecha con Vite + React + Tailwind CSS.
+Frontend React + Vite + Tailwind integrado con ecommerce removible por flag.
 
-## Ejecutar local
+## Variables
+
+Crear `apps/web/.env`:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+VITE_ENABLE_ECOMMERCE=true
+```
+
+Si `VITE_ENABLE_ECOMMERCE=false`, rutas `/shop`, `/catalogo`, `/checkout`, `/admin` muestran pantalla de “Próximamente”.
+
+## Ejecutar
 
 ```bash
+cd apps/web
 npm install
 npm run dev
 ```
-
-## Build
-
-```bash
-npm run build
-```
-
-El build se genera en `dist/`.
-
-## Deploy en Render
-
-Ver `../../docs/DEPLOY_RENDER.md`.

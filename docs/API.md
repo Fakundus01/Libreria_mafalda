@@ -2,90 +2,79 @@
 
 Base URL local: `http://localhost:5000`
 
-## Healthcheck
+## Feature flag
 
-### `GET /health`
+- `ENABLE_ECOMMERCE=false`: quedan activos `/health`, `/api/site`, `/api/contact`.
+- `ENABLE_ECOMMERCE=true`: habilita auth, e-commerce, pagos, impresiones y admin.
 
-Respuesta:
+## Base pública
 
-```json
-{ "status": "ok" }
-```
+- `GET /health`
+- `GET /api/site`
+- `POST /api/contact`
 
-## Site data
+## Auth
 
-### `GET /api/site`
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `GET /api/auth/me` (Bearer token)
 
-Devuelve datos del negocio desde configuración de entorno/app (MVP simple y estable para demo sin panel admin).
+## Productos
 
-Respuesta 200:
+- `GET /api/products`
+- `GET /api/products/<id>`
+- `GET /api/products/<id>/images`
 
-```json
-{
-  "ok": true,
-  "data": {
-    "name": "Librería Mafalda",
-    "address": "Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires",
-    "phone": "01131875770",
-    "email": "mafaldalibreria@hotmail.com",
-    "hours": [
-      { "day": "Lunes a viernes", "time": "9:00 a 15:00" },
-      { "day": "Sábados", "time": "9:00 a 13:00" }
-    ]
-  }
-}
-```
+## Pedidos
 
-## Contacto
+- `POST /api/orders` (guest o user)
+- `GET /api/orders/<order_code>?email=...` (tracking)
+- `GET /api/my/orders` (Bearer token)
 
-### `POST /api/contact`
+Estados posibles:
+`PENDING_PAYMENT | PAID | PREPARING | READY_FOR_PICKUP | OUT_FOR_DELIVERY | COMPLETED | CANCELED | FAILED`
 
-Body:
+## Pagos
 
-```json
-{
-  "name": "Juan Pérez",
-  "email": "juan@mail.com",
-  "message": "Hola, quiero consultar por stock."
-}
-```
+Mercado Pago:
+- `POST /api/payments/mercadopago/create-preference`
+- `POST /api/payments/mercadopago/webhook`
 
-Validaciones:
-- `name`: requerido, máximo 120
-- `email`: requerido, formato básico, máximo 255
-- `message`: requerido, mínimo 8, máximo 3000
+Transferencia:
+- `POST /api/payments/transfer/create`
+- `GET /api/payments/transfer/status/<order_code>`
 
-Respuesta 201:
+## Impresiones
 
-```json
-{ "ok": true, "id": 1 }
-```
+- `POST /api/prints`
+- `GET /api/prints/<print_code>?email=...`
 
-Error 422:
+## Admin (Bearer token admin)
+
+- `POST /api/admin/auth/login`
+- `GET /api/admin/orders`
+- `GET /api/admin/orders/<order_code>`
+- `PATCH /api/admin/orders/<order_code>`
+- `PATCH /api/admin/payments/transfer/<order_code>`
+- `GET /api/admin/prints`
+- `PATCH /api/admin/prints/<print_code>`
+- `POST /api/admin/products`
+- `PUT /api/admin/products/<id>`
+- `DELETE /api/admin/products/<id>`
+- `POST /api/admin/products/<id>/images`
+- `DELETE /api/admin/product-images/<image_id>`
+- `GET /api/admin/metrics`
+
+## Errores JSON
+
+Formato consistente:
 
 ```json
 {
   "ok": false,
   "error": {
     "code": "validation_error",
-    "fields": {
-      "email": "El email no tiene un formato válido."
-    }
+    "message": "No se pudo procesar el pago."
   }
 }
 ```
-
-## Productos (preparación catálogo)
-
-### `GET /api/products`
-
-Respuesta 200:
-
-```json
-{
-  "ok": true,
-  "data": []
-}
-```
-
-La tabla y modelo `products` ya quedan creados para evolución futura.

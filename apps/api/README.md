@@ -1,16 +1,8 @@
-# Librería Mafalda API (Backend MVP)
+# Librería Mafalda API (Backend MVP + Ecommerce + Impresiones)
 
-Backend MVP con Flask + SQLAlchemy + Alembic para demo comercial.
+Backend Flask modular con feature flag para habilitar/deshabilitar ecommerce sin romper el sitio institucional.
 
-## Stack
-
-- Flask (app factory + blueprints)
-- Flask-SQLAlchemy
-- Flask-Migrate (Alembic)
-- PostgreSQL
-- Gunicorn
-
-## Setup local
+## Setup local (Linux/macOS)
 
 ```bash
 cd apps/api
@@ -18,52 +10,42 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+flask --app manage.py db upgrade
+python scripts/seed.py
+flask --app manage.py run --debug
 ```
 
-## Variables de entorno
+## Setup local (Windows PowerShell)
 
-- `FLASK_ENV` (`development` / `production`)
-- `SECRET_KEY`
-- `DATABASE_URL` (PostgreSQL)
-- `CORS_ORIGINS` (separado por comas)
-- `LOG_LEVEL`
+```powershell
+cd apps/api
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+flask --app manage.py db upgrade
+python scripts/seed.py
+flask --app manage.py run --debug
+```
 
-> Nota: si Render entrega `postgres://...`, el backend lo normaliza automáticamente a `postgresql://...`.
+## Variables clave
+
+- `ENABLE_ECOMMERCE=true|false`
+- `DATABASE_URL`
+- `CORS_ORIGINS`
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`
+- `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`
+- `EMAIL_PROVIDER`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`
 
 ## Migraciones
 
 ```bash
-cd apps/api
-source .venv/bin/activate
-flask --app manage.py db upgrade
-```
-
-Crear nueva migración:
-
-```bash
 flask --app manage.py db migrate -m "descripcion"
-```
-
-## Ejecutar en desarrollo
-
-```bash
-cd apps/api
-source .venv/bin/activate
-flask --app manage.py run --debug
-```
-
-## Seed opcional
-
-```bash
-cd apps/api
-source .venv/bin/activate
-python scripts/seed.py
+flask --app manage.py db upgrade
 ```
 
 ## Tests
 
 ```bash
-cd apps/api
-source .venv/bin/activate
 pytest
 ```
