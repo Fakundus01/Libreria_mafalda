@@ -2,8 +2,10 @@ from .contact_message import ContactMessage
 from .order import FulfillmentType, Order, OrderStatus
 from .order_item import OrderItem
 from .payment import Payment
+from .print_request import PrintRequest
 from .product import Product
 from .product_image import ProductImage
+from .user import User
 
 __all__ = [
     'ContactMessage',
@@ -14,4 +16,6 @@ __all__ = [
     'OrderStatus',
     'FulfillmentType',
     'Payment',
+    'User',
+    'PrintRequest',
 ]

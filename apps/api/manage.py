@@ -1,6 +1,6 @@
 from app import create_app
 from app.core.extensions import db
-from app.models import ContactMessage, Order, OrderItem, Payment, Product, ProductImage
+from app.models import ContactMessage, Order, OrderItem, Payment, PrintRequest, Product, ProductImage, User
 
 app = create_app()
 
@@ -15,4 +15,6 @@ def shell_context():
         'Order': Order,
         'OrderItem': OrderItem,
         'Payment': Payment,
+        'User': User,
+        'PrintRequest': PrintRequest,
     }

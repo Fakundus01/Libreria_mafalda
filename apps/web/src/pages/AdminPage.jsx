@@ -8,6 +8,7 @@ function AdminPage() {
   const [token, setToken] = useState(localStorage.getItem('mafalda_admin_token') || '');
   const [form, setForm] = useState({ email: '', password: '' });
   const [orders, setOrders] = useState([]);
+  const [prints, setPrints] = useState([]);
   const [error, setError] = useState('');
 
   const login = async (event) => {
@@ -22,22 +23,36 @@ function AdminPage() {
     }
   };
 
+  const authedGet = async (path) => {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || 'No se pudo cargar. Intentá nuevamente.');
+    return json;
+  };
+
   const loadOrders = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/admin/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error?.message || 'Error');
+      const json = await authedGet('/api/admin/orders');
       setOrders(json.data || []);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const setPreparing = async (orderId) => {
+  const loadPrints = async () => {
     try {
-      await apiPatch(`/api/admin/orders/${orderId}`, { status: 'PREPARING' }, token);
+      const json = await authedGet('/api/admin/prints');
+      setPrints(json.data || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const setPreparing = async (orderCode) => {
+    try {
+      await apiPatch(`/api/admin/orders/${orderCode}`, { status: 'PREPARING' }, token);
       loadOrders();
     } catch (err) {
       setError(err.message);
@@ -65,18 +80,30 @@ function AdminPage() {
   return (
     <main className="bg-cream py-10">
       <Container>
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="font-serif text-3xl">Panel admin</h1>
+        <div className="mb-4 flex flex-wrap gap-2">
           <Button as="button" onClick={loadOrders} className="bg-terracotta text-white">Cargar pedidos</Button>
+          <Button as="button" onClick={loadPrints} className="bg-stone-900 text-cream">Cargar impresiones</Button>
         </div>
         {error && <p className="mb-3 text-red-600">{error}</p>}
-        <div className="grid gap-3">
+
+        <h2 className="font-serif text-2xl">Pedidos</h2>
+        <div className="mt-3 grid gap-3">
           {orders.map((order) => (
-            <Card key={order.id}>
-              <p className="font-semibold">Pedido #{order.id} - {order.customer_name}</p>
+            <Card key={order.order_code}>
+              <p className="font-semibold">Pedido {order.order_code} - {order.customer_name}</p>
               <p className="text-sm">Estado: {order.status}</p>
               <p className="text-sm">Total: ${order.total_amount}</p>
-              <Button as="button" onClick={() => setPreparing(order.id)} className="mt-3 bg-stone-900 text-cream">Marcar PREPARING</Button>
+              <Button as="button" onClick={() => setPreparing(order.order_code)} className="mt-3 bg-stone-900 text-cream">Marcar PREPARING</Button>
+            </Card>
+          ))}
+        </div>
+
+        <h2 className="mt-8 font-serif text-2xl">Impresiones</h2>
+        <div className="mt-3 grid gap-3">
+          {prints.map((item) => (
+            <Card key={item.print_code}>
+              <p className="font-semibold">{item.print_code} - {item.customer_name}</p>
+              <p className="text-sm">Estado: {item.status}</p>
             </Card>
           ))}
         </div>

@@ -1,14 +1,6 @@
-# Librería Mafalda API (Backend MVP + E-commerce modular)
+# Librería Mafalda API (Backend MVP + Ecommerce + Impresiones)
 
-Backend Flask con módulo e-commerce removible por feature flag.
-
-## Stack
-
-- Flask (app factory + blueprints)
-- Flask-SQLAlchemy + PostgreSQL
-- Flask-Migrate (Alembic)
-- Flask-CORS
-- Gunicorn
+Backend Flask modular con feature flag para habilitar/deshabilitar ecommerce sin romper el sitio institucional.
 
 ## Setup local (Linux/macOS)
 
@@ -19,6 +11,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 flask --app manage.py db upgrade
+python scripts/seed.py
 flask --app manage.py run --debug
 ```
 
@@ -31,63 +24,24 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env
 flask --app manage.py db upgrade
+python scripts/seed.py
 flask --app manage.py run --debug
 ```
 
-## Variables de entorno
+## Variables clave
 
-### Core
-
-- `FLASK_ENV`
-- `SECRET_KEY`
+- `ENABLE_ECOMMERCE=true|false`
 - `DATABASE_URL`
 - `CORS_ORIGINS`
-- `LOG_LEVEL`
-- `SITE_NAME` (opcional)
-- `SITE_ADDRESS` (opcional)
-- `SITE_PHONE` (opcional)
-- `SITE_EMAIL` (opcional)
-
-### Site config
-
-- `SITE_NAME`
-- `SITE_ADDRESS`
-- `SITE_PHONE`
-- `SITE_EMAIL`
-
-### E-commerce / admin / pagos
-
-- `DELIVERY_ALLOWED_AREAS`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
-- `ADMIN_JWT_SECRET`
-- `ADMIN_JWT_EXPIRES_MINUTES`
-- `MP_ACCESS_TOKEN`
-- `MP_WEBHOOK_SECRET`
-- `MP_BASE_URL`
-- `EMAIL_PROVIDER`
-- `EMAIL_FROM`
-
-> Si Render entrega `postgres://...`, el backend lo normaliza a `postgresql://...`.
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`
+- `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`
+- `EMAIL_PROVIDER`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`
 
 ## Migraciones
 
-Crear migración:
-
 ```bash
 flask --app manage.py db migrate -m "descripcion"
-```
-
-Aplicar migraciones:
-
-```bash
 flask --app manage.py db upgrade
-```
-
-## Seed opcional (8 productos + imágenes)
-
-```bash
-python scripts/seed.py
 ```
 
 ## Tests

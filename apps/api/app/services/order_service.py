@@ -1,13 +1,21 @@
+from datetime import datetime
 from decimal import Decimal
 
-from flask import current_app
+from flask import current_app, g
 
 from app.core.extensions import db
 from app.models import FulfillmentType, Order, OrderItem, OrderStatus, Product
+from app.services.email_service import send_order_created_email
 
 
 class OrderValidationError(ValueError):
     pass
+
+
+def _build_order_code() -> str:
+    year = datetime.utcnow().year
+    seq = Order.query.count() + 1
+    return f'MF-{year}-{seq:06d}'
 
 
 def _validate_delivery(fulfillment_type: str, delivery_address: dict | None):
@@ -44,6 +52,8 @@ def create_order(payload: dict) -> Order:
     delivery_address = _validate_delivery(fulfillment_type, payload.get('delivery_address'))
 
     order = Order(
+        order_code=_build_order_code(),
+        user_id=g.auth['uid'] if getattr(g, 'auth', None) else None,
         customer_name=customer_name,
         customer_email=customer_email,
         customer_phone=customer_phone,
@@ -68,6 +78,7 @@ def create_order(payload: dict) -> Order:
         if product.stock < qty:
             raise OrderValidationError(f'Stock insuficiente para {product.title}.')
 
+        product.stock -= qty
         unit_price = product.effective_price()
         subtotal = unit_price * qty
         total += subtotal
@@ -85,6 +96,7 @@ def create_order(payload: dict) -> Order:
     order.total_amount = total
     db.session.add(order)
     db.session.commit()
+    send_order_created_email(order)
     return order
 
 

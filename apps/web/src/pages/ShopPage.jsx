@@ -60,7 +60,7 @@ function ShopPage() {
             {products.map((product) => (
               <Card key={product.id}>
                 <img src={product.images?.[0]?.url || 'https://placehold.co/600x380'} alt={product.title} className="h-44 w-full rounded-xl object-cover" />
-                <h3 className="mt-3 font-serif text-xl">{product.title}</h3>
+                <h3 className="mt-3 font-serif text-xl"><Link to={`/product/${product.id}`} className="hover:underline">{product.title}</Link></h3>
                 <p className="text-sm text-stone-600">{product.description}</p>
                 <p className="mt-2 font-semibold text-terracotta">${product.effective_price}</p>
                 <Button as="button" onClick={() => addToCart(product)} className="mt-4 w-full bg-terracotta text-white">

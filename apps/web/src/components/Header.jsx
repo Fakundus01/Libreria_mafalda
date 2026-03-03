@@ -15,13 +15,15 @@ function Header({ site }) {
               {item.label}
             </a>
           ))}
-          <Link to="/catalogo" className="transition hover:text-stone-950">
-            {ecommerceEnabled ? 'Tienda' : 'Catálogo'}
-          </Link>
-          {ecommerceEnabled && (
-            <Link to="/checkout" className="transition hover:text-stone-950">
-              Checkout
-            </Link>
+          {ecommerceEnabled ? (
+            <>
+              <Link to="/shop" className="transition hover:text-stone-950">Tienda</Link>
+              <Link to="/cart" className="transition hover:text-stone-950">Carrito</Link>
+              <Link to="/prints" className="transition hover:text-stone-950">Impresiones</Link>
+              <Link to="/login" className="transition hover:text-stone-950">Ingresar</Link>
+            </>
+          ) : (
+            <Link to="/catalogo" className="transition hover:text-stone-950">Catálogo</Link>
           )}
         </nav>
       </Container>

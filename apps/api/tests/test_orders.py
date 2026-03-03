@@ -11,6 +11,7 @@ def test_create_pickup_order_success(client):
     assert response.status_code == 201
     assert body['ok'] is True
     assert body['data']['status'] == 'PENDING_PAYMENT'
+    assert body['data']['order_code'].startswith('MF-')
 
 
 def test_create_delivery_order_outside_area_fails(client):
