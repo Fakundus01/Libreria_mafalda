@@ -1,16 +1,16 @@
-# Librería Mafalda API (Backend MVP)
+# Librería Mafalda API (Backend MVP + E-commerce modular)
 
-Backend MVP con Flask + SQLAlchemy + Alembic para demo comercial.
+Backend Flask con módulo e-commerce removible por feature flag.
 
 ## Stack
 
 - Flask (app factory + blueprints)
-- Flask-SQLAlchemy
+- Flask-SQLAlchemy + PostgreSQL
 - Flask-Migrate (Alembic)
-- PostgreSQL
+- Flask-CORS
 - Gunicorn
 
-## Setup local
+## Setup local (Linux/macOS)
 
 ```bash
 cd apps/api
@@ -18,52 +18,83 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+flask --app manage.py db upgrade
+flask --app manage.py run --debug
+```
+
+## Setup local (Windows PowerShell)
+
+```powershell
+cd apps/api
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+flask --app manage.py db upgrade
+flask --app manage.py run --debug
 ```
 
 ## Variables de entorno
 
-- `FLASK_ENV` (`development` / `production`)
-- `SECRET_KEY`
-- `DATABASE_URL` (PostgreSQL)
-- `CORS_ORIGINS` (separado por comas)
-- `LOG_LEVEL`
+### Core
 
-> Nota: si Render entrega `postgres://...`, el backend lo normaliza automáticamente a `postgresql://...`.
+- `FLASK_ENV`
+- `SECRET_KEY`
+- `DATABASE_URL`
+- `CORS_ORIGINS`
+- `LOG_LEVEL`
+- `ENABLE_ECOMMERCE=true|false`
+
+### Site config
+
+- `SITE_NAME`
+- `SITE_ADDRESS`
+- `SITE_PHONE`
+- `SITE_EMAIL`
+
+### E-commerce / admin / pagos
+
+- `DELIVERY_ALLOWED_AREAS`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `ADMIN_JWT_SECRET`
+- `ADMIN_JWT_EXPIRES_MINUTES`
+- `MP_ACCESS_TOKEN`
+- `MP_WEBHOOK_SECRET`
+- `MP_BASE_URL`
+- `EMAIL_PROVIDER`
+- `EMAIL_FROM`
+
+> Si Render entrega `postgres://...`, el backend lo normaliza a `postgresql://...`.
 
 ## Migraciones
 
-```bash
-cd apps/api
-source .venv/bin/activate
-flask --app manage.py db upgrade
-```
-
-Crear nueva migración:
+Crear migración:
 
 ```bash
 flask --app manage.py db migrate -m "descripcion"
 ```
 
-## Ejecutar en desarrollo
+Aplicar migraciones:
 
 ```bash
-cd apps/api
-source .venv/bin/activate
-flask --app manage.py run --debug
+flask --app manage.py db upgrade
 ```
 
-## Seed opcional
+## Seed opcional (8 productos + imágenes)
 
 ```bash
-cd apps/api
-source .venv/bin/activate
 python scripts/seed.py
 ```
 
 ## Tests
 
 ```bash
-cd apps/api
-source .venv/bin/activate
 pytest
+```
+
+Alternativa explícita:
+
+```bash
+PYTHONPATH=. pytest
 ```

@@ -3,7 +3,6 @@ import re
 from flask import Blueprint, current_app, jsonify, request
 
 from app.services.contact_service import create_contact_message
-from app.services.product_service import list_products
 from app.services.site_service import get_site_data
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -53,9 +52,3 @@ def post_contact():
     current_app.logger.info('contact_message_created id=%s email=%s', saved.id, saved.email)
 
     return jsonify({'ok': True, 'id': saved.id}), 201
-
-
-@api_bp.get('/products')
-def get_products():
-    products = list_products()
-    return jsonify({'ok': True, 'data': [item.to_dict() for item in products]})

@@ -1,39 +1,64 @@
-# Deploy de frontend en Render (Static Site)
+# Deploy backend en Render (Web Service)
 
-Esta guía aplica **solo al frontend** (sin backend).
+## Servicio
 
-## Configuración base
+- Type: **Web Service**
+- Root Directory: `apps/api`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn wsgi:app`
 
-- **Root Directory:** `apps/web`
-- **Build Command:** `npm run build`
-- **Publish Directory:** `dist`
+## Variables de entorno mínimas
 
-## Variables de entorno
+- `FLASK_ENV=production`
+- `SECRET_KEY=<secret>`
+- `DATABASE_URL=<render postgres url>`
+- `CORS_ORIGINS=https://<frontend>.onrender.com`
+- `LOG_LEVEL=INFO`
+- `ENABLE_ECOMMERCE=true|false`
 
-No son obligatorias para este demo.
+## Variables e-commerce
 
-## Pasos
+- `DELIVERY_ALLOWED_AREAS=Villa Maipú`
+- `ADMIN_EMAIL=...`
+- `ADMIN_PASSWORD=...`
+- `ADMIN_JWT_SECRET=...`
+- `ADMIN_JWT_EXPIRES_MINUTES=720`
 
-1. Crear un nuevo servicio en Render: **Static Site**.
-2. Conectar el repositorio.
-3. Configurar:
-   - Root Directory: `apps/web`
-   - Build Command: `npm run build`
-   - Publish Directory: `dist`
-4. Guardar y desplegar.
+## Mercado Pago
 
-## Troubleshooting
+- `MP_ACCESS_TOKEN=...`
+- `MP_WEBHOOK_SECRET=...`
+- `MP_BASE_URL=https://api.mercadopago.com`
 
-### 404 al recargar rutas (ej. `/catalogo`)
+Webhook público:
 
-Al ser SPA con React Router, configurar **Rewrite/Fallback**:
+- `https://<tu-backend>.onrender.com/api/payments/mercadopago/webhook`
+- Enviar header `x-webhook-secret` con el valor de `MP_WEBHOOK_SECRET`.
 
-- Source: `/*`
-- Destination: `/index.html`
-- Action: `Rewrite`
+## Email
 
-Esto permite que Render sirva `index.html` para rutas del cliente.
+- `EMAIL_PROVIDER=log` (MVP)
+- `EMAIL_FROM=no-reply@...`
+- `SITE_EMAIL=mafaldalibreria@hotmail.com`
 
-### Falló el build por versión de Node
+## Migraciones
 
-Definir versión estable (18+ o 20+) en Render usando `NODE_VERSION` en Environment si fuera necesario.
+Estrategia segura:
+
+```bash
+cd apps/api
+flask --app manage.py db upgrade
+```
+
+Si tu entorno local lo requiere:
+
+```bash
+cd apps/api
+PYTHONPATH=. flask --app manage.py db upgrade
+```
+
+## Seguridad mínima
+
+- CORS restringido a dominios concretos.
+- No loggear tokens ni secretos.
+- Mantener `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` en Render env vars.
