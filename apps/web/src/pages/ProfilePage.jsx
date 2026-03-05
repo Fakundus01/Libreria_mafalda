@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -16,7 +16,6 @@ import { formatCurrency } from '../lib/format';
 function ProfilePage() {
   const { user, logout } = useShop();
   const [profile, setProfile] = useState(user);
-  const isAdmin = profile?.role === 'ADMIN';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,21 +61,9 @@ function ProfilePage() {
                   <p><strong>Telefono:</strong> {profile?.phone || 'Sin telefono cargado'}</p>
                   <p><strong>Rol:</strong> {profile?.role}</p>
                 </div>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  {isAdmin ? (
-                    <>
-                      <Button as={Link} to="/admin" className="bg-sun text-ink">
-                        Ir al panel admin
-                      </Button>
-                      <Button as={Link} to="/admin/products#product-manager" className="border border-white/20 bg-white/10 text-white">
-                        Editar productos
-                      </Button>
-                    </>
-                  ) : null}
-                  <Button as="button" type="button" onClick={logout} className="bg-white text-ink">
-                    Cerrar sesion
-                  </Button>
-                </div>
+                <Button as="button" type="button" onClick={logout} className="mt-8 bg-white text-ink">
+                  Cerrar sesion
+                </Button>
               </Card>
 
               <div>

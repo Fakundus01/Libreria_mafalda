@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ecommerceEnabled } from '../config/site';
 import { useShop } from '../context/ShopContext';
@@ -20,7 +20,7 @@ function Header({ site }) {
       ? [
         { label: 'Tienda', href: '/shop' },
         { label: 'Impresiones', href: '/prints' },
-        ...(isAdminAuthenticated ? [{ label: 'Admin', href: '/products' }] : []),
+        ...(isAdminAuthenticated ? [{ label: 'Admin', href: '/admin/dashboard' }] : []),
       ]
       : []),
   ];
@@ -53,16 +53,6 @@ function Header({ site }) {
             </nav>
 
             <div className="hidden items-center gap-3 lg:flex">
-              {isAdminAuthenticated ? (
-                <>
-                  <Button as={Link} to="/admin" className="border border-coral/20 bg-white text-ink">
-                    Panel admin
-                  </Button>
-                  <Button as={Link} to="/admin/products#product-manager" className="bg-coral text-white">
-                    Gestionar productos
-                  </Button>
-                </>
-              ) : null}
               {ecommerceEnabled ? (
                 <Button as={Link} to="/cart" className="bg-sun/45 text-ink">
                   Carrito {cartCount ? `(${cartCount})` : ''}
@@ -96,16 +86,6 @@ function Header({ site }) {
                   </a>
                 )
               ))}
-              {isAdminAuthenticated ? (
-                <>
-                  <Link to="/admin" className="rounded-2xl border border-coral/20 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-sun/25" onClick={() => setMenuOpen(false)}>
-                    Panel admin
-                  </Link>
-                  <Link to="/admin/products#product-manager" className="rounded-2xl bg-coral px-4 py-3 text-sm font-semibold text-white" onClick={() => setMenuOpen(false)}>
-                    Gestionar productos
-                  </Link>
-                </>
-              ) : null}
               {ecommerceEnabled ? (
                 <Link to="/cart" className="rounded-2xl px-4 py-3 text-sm font-semibold text-ink transition hover:bg-sun/25" onClick={() => setMenuOpen(false)}>
                   Carrito ({cartCount})

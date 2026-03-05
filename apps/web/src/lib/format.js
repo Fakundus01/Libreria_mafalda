@@ -4,8 +4,23 @@ const currencyFormatter = new Intl.NumberFormat('es-AR', {
   maximumFractionDigits: 0,
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 export function formatCurrency(value) {
   return currencyFormatter.format(Number(value) || 0);
+}
+
+export function formatDateTime(value) {
+  if (!value) return 'Sin fecha';
+
+  try {
+    return dateTimeFormatter.format(new Date(value));
+  } catch {
+    return 'Sin fecha';
+  }
 }
 
 export function formatStatus(status) {

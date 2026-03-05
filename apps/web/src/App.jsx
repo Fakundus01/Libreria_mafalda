@@ -1,7 +1,12 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import { ecommerceEnabled } from './config/site';
 import { useShop } from './context/ShopContext';
+import AdminCustomersPage from './pages/AdminCustomersPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminMessagesPage from './pages/AdminMessagesPage';
+import AdminOrdersPage from './pages/AdminOrdersPage';
 import AdminPage from './pages/AdminPage';
+import AdminProductsPage from './pages/AdminProductsPage';
 import CartPage from './pages/CartPage';
 import CatalogPage from './pages/CatalogPage';
 import CheckoutFailurePage from './pages/CheckoutFailurePage';
@@ -49,8 +54,7 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/catalogo" element={ecommerceEnabled ? <Navigate to="/shop" replace /> : <UnavailablePage />} />
       <Route path="/shop" element={<EcommerceRoute><ShopPage /></EcommerceRoute>} />
-      <Route path="/products" element={<EcommerceRoute><RequireAdmin><AdminPage /></RequireAdmin></EcommerceRoute>} />
-      <Route path="/admin/products" element={<EcommerceRoute><RequireAdmin><AdminPage /></RequireAdmin></EcommerceRoute>} />
+      <Route path="/products" element={<EcommerceRoute><Navigate to="/admin/products" replace /></EcommerceRoute>} />
       <Route path="/product/:id" element={<EcommerceRoute><ProductDetailPage /></EcommerceRoute>} />
       <Route path="/cart" element={<EcommerceRoute><CartPage /></EcommerceRoute>} />
       <Route path="/checkout" element={<EcommerceRoute><RequireCart><CheckoutPage /></RequireCart></EcommerceRoute>} />
@@ -63,6 +67,11 @@ function App() {
       <Route path="/signup" element={<EcommerceRoute><RequireGuest><SignupPage /></RequireGuest></EcommerceRoute>} />
       <Route path="/profile" element={<EcommerceRoute><RequireAuth><ProfilePage /></RequireAuth></EcommerceRoute>} />
       <Route path="/admin" element={<EcommerceRoute><AdminPage /></EcommerceRoute>} />
+      <Route path="/admin/dashboard" element={<EcommerceRoute><RequireAdmin><AdminDashboardPage /></RequireAdmin></EcommerceRoute>} />
+      <Route path="/admin/products" element={<EcommerceRoute><RequireAdmin><AdminProductsPage /></RequireAdmin></EcommerceRoute>} />
+      <Route path="/admin/orders" element={<EcommerceRoute><RequireAdmin><AdminOrdersPage /></RequireAdmin></EcommerceRoute>} />
+      <Route path="/admin/customers" element={<EcommerceRoute><RequireAdmin><AdminCustomersPage /></RequireAdmin></EcommerceRoute>} />
+      <Route path="/admin/messages" element={<EcommerceRoute><RequireAdmin><AdminMessagesPage /></RequireAdmin></EcommerceRoute>} />
       <Route path="/legacy-catalog" element={<CatalogPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

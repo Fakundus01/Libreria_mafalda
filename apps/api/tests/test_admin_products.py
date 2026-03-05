@@ -22,6 +22,23 @@ def test_admin_me_and_metrics(client):
     assert 'customers_count' in data
     assert 'contact_messages_count' in data
 
+    customers = client.get('/api/admin/customers', headers=headers)
+    assert customers.status_code == 200
+    customer_payload = customers.get_json()['data']
+    assert isinstance(customer_payload, list)
+    if customer_payload:
+        assert customer_payload[0]['role'] == 'CUSTOMER'
+        assert 'orders_count' in customer_payload[0]
+        assert 'total_spent' in customer_payload[0]
+
+    messages = client.get('/api/admin/messages', headers=headers)
+    assert messages.status_code == 200
+    message_payload = messages.get_json()['data']
+    assert isinstance(message_payload, list)
+    if message_payload:
+        assert 'message' in message_payload[0]
+        assert 'email' in message_payload[0]
+
 
 def test_admin_products_list_and_create(client):
     token = admin_token(client)

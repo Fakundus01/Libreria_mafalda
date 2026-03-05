@@ -240,6 +240,44 @@ def admin_delete_product_image(image_id: int):
     return jsonify({'ok': True})
 
 
+@admin_bp.get('/customers')
+@admin_required
+def admin_customers():
+    rows = (
+        db.session.query(
+            User,
+            db.func.count(Order.id).label('orders_count'),
+            db.func.coalesce(db.func.sum(Order.total_amount), 0).label('total_spent'),
+            db.func.max(Order.created_at).label('last_order_at'),
+        )
+        .outerjoin(Order, Order.user_id == User.id)
+        .filter(User.role == 'CUSTOMER')
+        .group_by(User.id)
+        .order_by(User.created_at.desc())
+        .all()
+    )
+
+    data = []
+    for user, orders_count, total_spent, last_order_at in rows:
+        data.append(
+            {
+                **user.to_dict(),
+                'orders_count': int(orders_count or 0),
+                'total_spent': float(total_spent or 0),
+                'last_order_at': last_order_at.isoformat() if last_order_at else None,
+            }
+        )
+
+    return jsonify({'ok': True, 'data': data})
+
+
+@admin_bp.get('/messages')
+@admin_required
+def admin_messages():
+    items = ContactMessage.query.order_by(ContactMessage.created_at.desc()).all()
+    return jsonify({'ok': True, 'data': [item.to_dict() for item in items]})
+
+
 @admin_bp.get('/prints')
 @admin_required
 def admin_prints():
