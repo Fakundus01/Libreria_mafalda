@@ -7,6 +7,22 @@ def admin_token(client):
     return login.get_json()['token']
 
 
+def test_admin_me_and_metrics(client):
+    token = admin_token(client)
+    headers = {'Authorization': f'Bearer {token}'}
+
+    me = client.get('/api/admin/me', headers=headers)
+    assert me.status_code == 200
+    assert me.get_json()['user']['role'] == 'ADMIN'
+
+    metrics = client.get('/api/admin/metrics', headers=headers)
+    assert metrics.status_code == 200
+    data = metrics.get_json()['data']
+    assert 'products_count' in data
+    assert 'customers_count' in data
+    assert 'contact_messages_count' in data
+
+
 def test_admin_products_list_and_create(client):
     token = admin_token(client)
     headers = {'Authorization': f'Bearer {token}'}

@@ -38,14 +38,19 @@ function RequireCart({ children }) {
   return cart.length ? children : <Navigate to="/cart" replace />;
 }
 
+function RequireAdmin({ children }) {
+  const { isAdminAuthenticated } = useShop();
+  return isAdminAuthenticated ? children : <Navigate to="/admin" replace />;
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/catalogo" element={ecommerceEnabled ? <Navigate to="/shop" replace /> : <UnavailablePage />} />
       <Route path="/shop" element={<EcommerceRoute><ShopPage /></EcommerceRoute>} />
-      <Route path="/products" element={<EcommerceRoute><AdminPage /></EcommerceRoute>} />
-      <Route path="/admin/products" element={<EcommerceRoute><AdminPage /></EcommerceRoute>} />
+      <Route path="/products" element={<EcommerceRoute><RequireAdmin><AdminPage /></RequireAdmin></EcommerceRoute>} />
+      <Route path="/admin/products" element={<EcommerceRoute><RequireAdmin><AdminPage /></RequireAdmin></EcommerceRoute>} />
       <Route path="/product/:id" element={<EcommerceRoute><ProductDetailPage /></EcommerceRoute>} />
       <Route path="/cart" element={<EcommerceRoute><CartPage /></EcommerceRoute>} />
       <Route path="/checkout" element={<EcommerceRoute><RequireCart><CheckoutPage /></RequireCart></EcommerceRoute>} />

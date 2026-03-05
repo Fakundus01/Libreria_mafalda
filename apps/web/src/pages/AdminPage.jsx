@@ -24,8 +24,20 @@ const emptyProductForm = {
   offer_price: '',
 };
 
+function MetricCard({ label, value, tone = 'default' }) {
+  const toneClass = tone === 'accent' ? 'bg-ink text-white' : tone === 'warm' ? 'bg-[#fff2e6]' : 'bg-white/92';
+  const textClass = tone === 'accent' ? 'text-sun' : 'text-coral/80';
+
+  return (
+    <Card className={toneClass}>
+      <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${textClass}`}>{label}</p>
+      <p className="mt-3 font-display text-5xl">{value}</p>
+    </Card>
+  );
+}
+
 function AdminPage() {
-  const { adminToken, logoutAdmin, setAdminToken } = useShop();
+  const { adminToken, adminUser, applyAdminSession, logoutAdmin } = useShop();
   const [form, setForm] = useState({ email: '', password: '' });
   const [metrics, setMetrics] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -36,6 +48,7 @@ function AdminPage() {
   const [imageInputs, setImageInputs] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(Boolean(adminToken));
   const [productSaving, setProductSaving] = useState(false);
   const [uploadingProductId, setUploadingProductId] = useState(null);
 
@@ -43,26 +56,32 @@ function AdminPage() {
     setLoading(true);
     setError('');
     try {
-      const [ordersRes, printsRes, metricsRes, productsRes] = await Promise.all([
+      const [meRes, ordersRes, printsRes, metricsRes, productsRes] = await Promise.all([
+        apiGet('/api/admin/me', { token }),
         apiGet('/api/admin/orders', { token }),
         apiGet('/api/admin/prints', { token }),
         apiGet('/api/admin/metrics', { token }),
         apiGet('/api/admin/products', { token }),
       ]);
+      applyAdminSession({ nextAdminToken: token, nextAdminUser: meRes.user });
       setOrders(ordersRes.data || []);
       setPrints(printsRes.data || []);
       setMetrics(metricsRes.data || null);
       setProducts(productsRes.data || []);
     } catch (requestError) {
+      logoutAdmin();
       setError(requestError.message || 'No se pudo cargar el panel admin.');
     } finally {
       setLoading(false);
+      setCheckingAccess(false);
     }
   };
 
   useEffect(() => {
     if (adminToken) {
       loadDashboard(adminToken);
+    } else {
+      setCheckingAccess(false);
     }
   }, [adminToken]);
 
@@ -72,12 +91,11 @@ function AdminPage() {
     setLoading(true);
     try {
       const res = await apiPost('/api/admin/auth/login', form);
-      setAdminToken(res.token);
       await loadDashboard(res.token);
     } catch (requestError) {
       setError(requestError.message || 'No se pudo iniciar sesion admin.');
-    } finally {
       setLoading(false);
+      setCheckingAccess(false);
     }
   };
 
@@ -132,9 +150,7 @@ function AdminPage() {
   const removeProduct = async (productId) => {
     try {
       await apiDelete(`/api/admin/products/${productId}`, { token: adminToken });
-      if (editingProductId === productId) {
-        resetProductEditor();
-      }
+      if (editingProductId === productId) resetProductEditor();
       await loadDashboard();
     } catch (requestError) {
       setError(requestError.message || 'No se pudo eliminar el producto.');
@@ -156,7 +172,6 @@ function AdminPage() {
 
   const uploadImages = async (productId, files) => {
     if (!files?.length) return;
-
     setUploadingProductId(productId);
     setError('');
     try {
@@ -207,7 +222,21 @@ function AdminPage() {
     }
   };
 
-  if (!adminToken) {
+  if (checkingAccess) {
+    return (
+      <div className="overflow-hidden pb-6 text-ink">
+        <Header site={siteConfig} />
+        <main className="px-3 py-8 sm:py-10">
+          <Container className="max-w-3xl">
+            <PageLoader title="Validando acceso admin" message="Estamos comprobando permisos antes de abrir el panel." />
+          </Container>
+        </main>
+        <Footer site={siteConfig} />
+      </div>
+    );
+  }
+
+  if (!adminToken || !adminUser) {
     return (
       <div className="overflow-hidden pb-6 text-ink">
         <Header site={siteConfig} />
@@ -216,7 +245,7 @@ function AdminPage() {
             <Card className="bg-ink p-8 text-white">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sun">Admin</p>
               <h1 className="mt-3 font-display text-5xl leading-none">Panel operativo completo</h1>
-              <p className="mt-4 text-sm leading-7 text-white/75">Desde aca ahora se gestionan productos, stock, precio, imagenes, pedidos e impresiones.</p>
+              <p className="mt-4 text-sm leading-7 text-white/75">El dashboard solo se abre con usuario admin valido. Desde aca se gestionan productos, pedidos, clientes y solicitudes.</p>
             </Card>
             <Card className="p-8">
               <h2 className="font-display text-4xl text-ink">Ingresar como admin</h2>
@@ -250,7 +279,8 @@ function AdminPage() {
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Admin dashboard</p>
-              <h1 className="mt-2 font-display text-5xl leading-none text-ink">Catalogo, pedidos e impresiones</h1>
+              <h1 className="mt-2 font-display text-5xl leading-none text-ink">Operacion completa del ecommerce</h1>
+              <p className="mt-3 text-sm text-ink/65">Sesión activa como {adminUser.full_name}.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button as="button" type="button" onClick={() => loadDashboard()} className="bg-ink text-white">Recargar</Button>
@@ -258,24 +288,62 @@ function AdminPage() {
             </div>
           </div>
 
-          {loading ? <PageLoader title="Actualizando panel" message="Estamos leyendo pedidos, productos e impresiones." /> : null}
+          {loading ? <PageLoader title="Actualizando panel" message="Estamos leyendo pedidos, productos, clientes y solicitudes." /> : null}
           {error ? <p className="mb-5 rounded-[24px] bg-white/85 p-5 text-sm text-berry">{error}</p> : null}
 
           {metrics ? (
-            <div className="mb-6 grid gap-4 md:grid-cols-3">
-              <Card>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Ventas</p>
-                <p className="mt-3 font-display text-5xl text-ink">{formatCurrency(metrics.total_sales)}</p>
+            <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <MetricCard label="Ganancias" value={formatCurrency(metrics.total_sales)} tone="accent" />
+              <MetricCard label="Productos" value={metrics.products_count} />
+              <MetricCard label="Clientes" value={metrics.customers_count} />
+              <MetricCard label="Solicitudes" value={metrics.contact_messages_count} />
+              <MetricCard label="Impresiones" value={metrics.print_requests_count} tone="warm" />
+              <MetricCard label="Pedidos" value={metrics.orders_count} />
+              <MetricCard label="Pendientes" value={metrics.pending_orders_count} />
+              <MetricCard label="Ticket prom." value={formatCurrency(metrics.avg_ticket)} />
+              <MetricCard label="Activos" value={metrics.active_products_count} />
+              <MetricCard label="Impresiones pendientes" value={metrics.pending_print_requests} />
+            </section>
+          ) : null}
+
+          {metrics ? (
+            <section className="mb-8 grid gap-6 lg:grid-cols-3">
+              <Card className="bg-[#fff2e6]">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Top productos</p>
+                <div className="mt-5 space-y-3">
+                  {metrics.top_products?.length ? metrics.top_products.map((item) => (
+                    <div key={item.title} className="flex items-center justify-between rounded-[20px] bg-white/70 px-4 py-3">
+                      <span className="text-sm font-semibold text-ink">{item.title}</span>
+                      <span className="text-sm text-ink/65">{item.units} un.</span>
+                    </div>
+                  )) : <p className="text-sm text-ink/65">Todavia no hay ventas suficientes.</p>}
+                </div>
               </Card>
+
               <Card>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Pedidos</p>
-                <p className="mt-3 font-display text-5xl text-ink">{metrics.orders_count}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Stock bajo</p>
+                <div className="mt-5 space-y-3">
+                  {metrics.low_stock_products?.length ? metrics.low_stock_products.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-[20px] bg-[#fff7ef] px-4 py-3">
+                      <span className="text-sm font-semibold text-ink">{item.title}</span>
+                      <span className="text-sm text-coral">{item.stock} disponibles</span>
+                    </div>
+                  )) : <p className="text-sm text-ink/65">No hay alertas de stock.</p>}
+                </div>
               </Card>
-              <Card>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Ticket promedio</p>
-                <p className="mt-3 font-display text-5xl text-ink">{formatCurrency(metrics.avg_ticket)}</p>
+
+              <Card className="bg-ink text-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sun">Mensajes recientes</p>
+                <div className="mt-5 space-y-3">
+                  {metrics.recent_contacts?.length ? metrics.recent_contacts.map((item) => (
+                    <div key={item.id} className="rounded-[20px] bg-white/10 px-4 py-3">
+                      <p className="text-sm font-semibold text-white">{item.name}</p>
+                      <p className="mt-1 text-xs text-white/70">{item.email}</p>
+                    </div>
+                  )) : <p className="text-sm text-white/70">No hay mensajes cargados.</p>}
+                </div>
               </Card>
-            </div>
+            </section>
           ) : null}
 
           <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -286,7 +354,7 @@ function AdminPage() {
                   <h2 className="mt-2 font-display text-4xl text-ink">Crear o editar</h2>
                 </div>
                 {editingProductId ? (
-                  <Button as="button" type="button" onClick={resetProductEditor} className="bg-white border border-stone-200 text-ink">
+                  <Button as="button" type="button" onClick={resetProductEditor} className="border border-stone-200 bg-white text-ink">
                     Cancelar edicion
                   </Button>
                 ) : null}
@@ -381,7 +449,7 @@ function AdminPage() {
                       value={imageInputs[product.id] || ''}
                       onChange={(event) => setImageInputs((current) => ({ ...current, [product.id]: event.target.value }))}
                     />
-                    <Button as="button" type="button" onClick={() => addImageUrl(product.id)} className="bg-white border border-stone-200 text-ink">
+                    <Button as="button" type="button" onClick={() => addImageUrl(product.id)} className="border border-stone-200 bg-white text-ink">
                       Agregar URL
                     </Button>
                   </div>

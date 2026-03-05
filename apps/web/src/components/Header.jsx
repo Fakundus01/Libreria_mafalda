@@ -12,7 +12,7 @@ function resolveHref(pathname, href) {
 function Header({ site }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-  const { cartCount, isAuthenticated } = useShop();
+  const { cartCount, isAuthenticated, isAdminAuthenticated } = useShop();
 
   const navLinks = [
     ...site.navItems.map((item) => ({ ...item, href: resolveHref(location.pathname, item.href), external: false })),
@@ -20,6 +20,7 @@ function Header({ site }) {
       ? [
         { label: 'Tienda', href: '/shop' },
         { label: 'Impresiones', href: '/prints' },
+        ...(isAdminAuthenticated ? [{ label: 'Admin', href: '/products' }] : []),
       ]
       : []),
   ];

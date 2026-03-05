@@ -1,9 +1,9 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 from sqlalchemy import or_
 
 from app.core.auth import admin_required
 from app.core.extensions import db
-from app.models import Order, OrderItem, OrderStatus, PrintRequest, Product, ProductImage
+from app.models import ContactMessage, Order, OrderItem, OrderStatus, PrintRequest, Product, ProductImage, User
 from app.services.audit_service import list_audit_logs, log_audit_event
 from app.services.auth_service import ensure_admin_user, generate_token, verify_admin_credentials
 from app.services.email_service import send_print_status_changed
@@ -39,6 +39,15 @@ def admin_login():
     admin = ensure_admin_user()
     token = generate_token(user_id=admin.id, email=admin.email, role='ADMIN')
     return jsonify({'ok': True, 'token': token})
+
+
+@admin_bp.get('/me')
+@admin_required
+def admin_me():
+    user = db.session.get(User, g.auth['uid']) if getattr(g, 'auth', None) else None
+    if not user or user.role != 'ADMIN':
+        return jsonify({'ok': False, 'error': {'code': 'forbidden', 'message': 'Acceso no autorizado.'}}), 403
+    return jsonify({'ok': True, 'user': user.to_dict()})
 
 
 @admin_bp.get('/orders')
@@ -273,6 +282,13 @@ def admin_metrics():
     total_sales = float(db.session.query(db.func.coalesce(db.func.sum(Order.total_amount), 0)).filter(Order.status.in_(paid_statuses)).scalar())
     orders_count = db.session.query(db.func.count(Order.id)).scalar() or 0
     avg_ticket = float(total_sales / orders_count) if orders_count else 0.0
+    products_count = db.session.query(db.func.count(Product.id)).scalar() or 0
+    active_products_count = db.session.query(db.func.count(Product.id)).filter(Product.is_active.is_(True)).scalar() or 0
+    customers_count = db.session.query(db.func.count(User.id)).filter(User.role == 'CUSTOMER').scalar() or 0
+    print_requests_count = db.session.query(db.func.count(PrintRequest.id)).scalar() or 0
+    pending_print_requests = db.session.query(db.func.count(PrintRequest.id)).filter(PrintRequest.status.in_(['RECEIVED', 'IN_PROGRESS'])).scalar() or 0
+    contact_messages_count = db.session.query(db.func.count(ContactMessage.id)).scalar() or 0
+    pending_orders_count = db.session.query(db.func.count(Order.id)).filter(Order.status.in_(['PENDING_PAYMENT', 'PAID', 'PREPARING'])).scalar() or 0
 
     top_products = (
         db.session.query(OrderItem.title_snapshot, db.func.sum(OrderItem.quantity).label('units'))
@@ -282,6 +298,9 @@ def admin_metrics():
         .all()
     )
 
+    low_stock_products = Product.query.filter(Product.stock <= 5).order_by(Product.stock.asc(), Product.updated_at.desc()).limit(5).all()
+    recent_contacts = ContactMessage.query.order_by(ContactMessage.created_at.desc()).limit(5).all()
+
     return jsonify(
         {
             'ok': True,
@@ -289,7 +308,16 @@ def admin_metrics():
                 'total_sales': total_sales,
                 'orders_count': int(orders_count),
                 'avg_ticket': avg_ticket,
+                'products_count': int(products_count),
+                'active_products_count': int(active_products_count),
+                'customers_count': int(customers_count),
+                'print_requests_count': int(print_requests_count),
+                'pending_print_requests': int(pending_print_requests),
+                'contact_messages_count': int(contact_messages_count),
+                'pending_orders_count': int(pending_orders_count),
                 'top_products': [{'title': row[0], 'units': int(row[1])} for row in top_products],
+                'low_stock_products': [product.to_dict(with_images=False) for product in low_stock_products],
+                'recent_contacts': [item.to_dict() for item in recent_contacts],
             },
         }
     )

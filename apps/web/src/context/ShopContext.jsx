@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   token: 'mafalda_token',
   user: 'mafalda_user',
   adminToken: 'mafalda_admin_token',
+  adminUser: 'mafalda_admin_user',
 };
 
 function readJson(key, fallback) {
@@ -24,6 +25,7 @@ export function ShopProvider({ children }) {
   const [user, setUser] = useState(() => readJson(STORAGE_KEYS.user, null));
   const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '');
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem(STORAGE_KEYS.adminToken) || '');
+  const [adminUser, setAdminUser] = useState(() => readJson(STORAGE_KEYS.adminUser, null));
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.cart, JSON.stringify(cart));
@@ -52,6 +54,14 @@ export function ShopProvider({ children }) {
       localStorage.removeItem(STORAGE_KEYS.adminToken);
     }
   }, [adminToken]);
+
+  useEffect(() => {
+    if (adminUser) {
+      localStorage.setItem(STORAGE_KEYS.adminUser, JSON.stringify(adminUser));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.adminUser);
+    }
+  }, [adminUser]);
 
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
@@ -109,12 +119,20 @@ export function ShopProvider({ children }) {
     setToken(nextToken);
   };
 
+  const applyAdminSession = ({ nextAdminToken, nextAdminUser }) => {
+    setAdminToken(nextAdminToken);
+    setAdminUser(nextAdminUser);
+  };
+
   const logout = () => {
     setUser(null);
     setToken('');
   };
 
-  const logoutAdmin = () => setAdminToken('');
+  const logoutAdmin = () => {
+    setAdminToken('');
+    setAdminUser(null);
+  };
 
   const value = {
     cart,
@@ -130,7 +148,10 @@ export function ShopProvider({ children }) {
     applySession,
     logout,
     adminToken,
+    adminUser,
+    isAdminAuthenticated: Boolean(adminToken && adminUser?.role === 'ADMIN'),
     setAdminToken,
+    applyAdminSession,
     logoutAdmin,
     customerProfile,
     testProfile,
