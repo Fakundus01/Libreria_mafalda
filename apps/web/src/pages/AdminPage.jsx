@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Container from '../components/Container';
@@ -37,6 +38,7 @@ function MetricCard({ label, value, tone = 'default' }) {
 }
 
 function AdminPage() {
+  const location = useLocation();
   const { adminToken, adminUser, applyAdminSession, logoutAdmin } = useShop();
   const [form, setForm] = useState({ email: '', password: '' });
   const [metrics, setMetrics] = useState(null);
@@ -84,6 +86,17 @@ function AdminPage() {
       setCheckingAccess(false);
     }
   }, [adminToken]);
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const target = window.setTimeout(() => {
+      const element = document.querySelector(location.hash);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 120);
+    return () => window.clearTimeout(target);
+  }, [location.hash, loading, adminUser]);
 
   const login = async (event) => {
     event.preventDefault();
@@ -280,9 +293,11 @@ function AdminPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Admin dashboard</p>
               <h1 className="mt-2 font-display text-5xl leading-none text-ink">Operacion completa del ecommerce</h1>
-              <p className="mt-3 text-sm text-ink/65">Sesión activa como {adminUser.full_name}.</p>
+              <p className="mt-3 text-sm text-ink/65">SesiÃ³n activa como {adminUser.full_name}.</p>
             </div>
             <div className="flex flex-wrap gap-3">
+              <Button as={Link} to="/admin" className="border border-stone-200 bg-white text-ink">Dashboard</Button>
+              <Button as={Link} to="/admin/products#product-manager" className="bg-coral text-white">Productos</Button>
               <Button as="button" type="button" onClick={() => loadDashboard()} className="bg-ink text-white">Recargar</Button>
               <Button as="button" type="button" onClick={logoutAdmin} className="border border-stone-200 bg-white text-ink">Cerrar sesion</Button>
             </div>
@@ -347,7 +362,7 @@ function AdminPage() {
           ) : null}
 
           <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <Card className="p-7">
+            <Card className="p-7" id="product-manager">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Productos</p>
@@ -421,7 +436,7 @@ function AdminPage() {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">{product.category || 'Sin categoria'}</p>
                       <h3 className="mt-2 font-display text-3xl text-ink">{product.title}</h3>
-                      <p className="mt-2 text-sm text-ink/65">{formatCurrency(product.effective_price)} · stock {product.stock}</p>
+                      <p className="mt-2 text-sm text-ink/65">{formatCurrency(product.effective_price)} Â· stock {product.stock}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <StatusPill status={product.is_active ? 'APPROVED' : 'PENDING'} />
@@ -477,7 +492,7 @@ function AdminPage() {
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <h3 className="font-display text-3xl text-ink">{order.order_code}</h3>
-                        <p className="mt-2 text-sm text-ink/65">{order.customer_name} · {order.customer_email}</p>
+                        <p className="mt-2 text-sm text-ink/65">{order.customer_name} Â· {order.customer_email}</p>
                         <p className="mt-1 text-sm text-ink/65">{formatCurrency(order.total_amount)}</p>
                       </div>
                       <StatusPill status={order.status} />
@@ -521,3 +536,4 @@ function AdminPage() {
 }
 
 export default AdminPage;
+
