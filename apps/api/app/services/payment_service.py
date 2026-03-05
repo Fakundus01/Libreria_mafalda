@@ -6,7 +6,9 @@ from flask import current_app
 
 from app.core.extensions import db
 from app.models import Order, OrderStatus, Payment
+from app.services.audit_service import log_audit_event
 from app.services.email_service import send_order_paid_emails, send_transfer_created_emails
+from app.services.order_service import set_order_status
 
 
 class PaymentError(ValueError):
@@ -22,6 +24,22 @@ def _post_json(url: str, payload: dict, headers: dict):
         raise PaymentError('No se pudo procesar el pago.') from exc
 
 
+def _set_payment_status(payment: Payment, status: str, *, payload=None, actor=None):
+    previous_status = payment.status
+    payment.status = status
+    if payload is not None:
+        payment.raw_payload_json = payload
+    log_audit_event(
+        entity_type='payment',
+        entity_id=payment.id,
+        action='payment.status_changed',
+        before={'status': previous_status},
+        after={'status': payment.status},
+        metadata={'provider': payment.provider, 'order_id': payment.order_id},
+        actor=actor,
+    )
+
+
 def create_mp_preference(order_id: int):
     order = db.session.get(Order, order_id)
     if not order:
@@ -32,6 +50,14 @@ def create_mp_preference(order_id: int):
         checkout_url = f'https://www.mercadopago.com/checkout/v1/redirect?pref_id=mock-{order.id}'
         payment = Payment(order_id=order.id, status='PENDING', provider='MERCADOPAGO', provider_preference_id=f'mock-{order.id}')
         db.session.add(payment)
+        db.session.flush()
+        log_audit_event(
+            entity_type='payment',
+            entity_id=payment.id,
+            action='payment.preference_created',
+            after={'status': payment.status, 'provider_preference_id': payment.provider_preference_id},
+            metadata={'provider': payment.provider, 'order_code': order.order_code},
+        )
         db.session.commit()
         return {'checkout_url': checkout_url, 'preference_id': payment.provider_preference_id}
 
@@ -53,6 +79,14 @@ def create_mp_preference(order_id: int):
     data = _post_json(url, body, headers)
     payment = Payment(order_id=order.id, provider='MERCADOPAGO', status='PENDING', provider_preference_id=data.get('id'), raw_payload_json=data)
     db.session.add(payment)
+    db.session.flush()
+    log_audit_event(
+        entity_type='payment',
+        entity_id=payment.id,
+        action='payment.preference_created',
+        after={'status': payment.status, 'provider_preference_id': payment.provider_preference_id},
+        metadata={'provider': payment.provider, 'order_code': order.order_code},
+    )
     db.session.commit()
     return {'checkout_url': data.get('init_point'), 'preference_id': data.get('id')}
 
@@ -63,12 +97,20 @@ def create_transfer(order_code: str):
         raise PaymentError('Orden no encontrada.')
     payment = Payment(order_id=order.id, provider='TRANSFER', status='PENDING', raw_payload_json={'order_code': order_code})
     db.session.add(payment)
+    db.session.flush()
+    log_audit_event(
+        entity_type='payment',
+        entity_id=payment.id,
+        action='payment.transfer_created',
+        after={'status': payment.status},
+        metadata={'provider': payment.provider, 'order_code': order.order_code},
+    )
     db.session.commit()
     send_transfer_created_emails(order)
     return {
         'order_code': order.order_code,
         'status': payment.status,
-        'instructions': 'Transferí al alias MAFALDA.LIBRERIA y enviá comprobante por WhatsApp al 01131875770.',
+        'instructions': 'Transferi al alias MAFALDA.LIBRERIA y envia comprobante por WhatsApp al 01131875770.',
         'redirect_url': f'/transfer/{order.order_code}',
     }
 
@@ -83,7 +125,7 @@ def get_transfer_status(order_code: str):
     return {'order_code': order.order_code, 'status': transfer.status}
 
 
-def update_transfer_status(order_code: str, status: str):
+def update_transfer_status(order_code: str, status: str, *, actor=None):
     order = Order.query.filter_by(order_code=order_code).first()
     if not order:
         raise PaymentError('Orden no encontrada.')
@@ -92,14 +134,14 @@ def update_transfer_status(order_code: str, status: str):
     if not transfer:
         raise PaymentError('No existe pago por transferencia para esta orden.')
 
-    transfer.status = status
+    _set_payment_status(transfer, status, actor=actor)
     if status == 'APPROVED':
-        order.status = OrderStatus.PAID.value
+        set_order_status(order, OrderStatus.PAID.value, reason='transfer_approved', actor=actor)
         send_order_paid_emails(order)
     elif status in {'REJECTED', 'CANCELED'}:
-        order.status = OrderStatus.FAILED.value
-
-    db.session.commit()
+        set_order_status(order, OrderStatus.FAILED.value, reason='transfer_rejected', actor=actor)
+    else:
+        db.session.commit()
     return {'order_code': order.order_code, 'payment_status': transfer.status, 'order_status': order.status}
 
 
@@ -123,14 +165,14 @@ def process_webhook(payload: dict, webhook_secret: str | None):
         return {'ok': True, 'ignored': True}
 
     status = (payload.get('status') or 'approved').upper()
-    payment.status = 'APPROVED' if status == 'APPROVED' else status
+    normalized_status = 'APPROVED' if status == 'APPROVED' else status
+    _set_payment_status(payment, normalized_status, payload=payload, actor={'actor_user_id': None, 'actor_email': 'webhook', 'actor_role': 'SYSTEM'})
     payment.provider_payment_id = str(payment_id) if payment_id else payment.provider_payment_id
-    payment.raw_payload_json = payload
 
     order = db.session.get(Order, payment.order_id)
     if order and payment.status == 'APPROVED':
-        order.status = OrderStatus.PAID.value
+        set_order_status(order, OrderStatus.PAID.value, reason='mercadopago_webhook', actor={'actor_user_id': None, 'actor_email': 'webhook', 'actor_role': 'SYSTEM'})
         send_order_paid_emails(order)
-
-    db.session.commit()
+    else:
+        db.session.commit()
     return {'ok': True}

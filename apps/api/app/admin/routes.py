@@ -1,24 +1,30 @@
-import os
-from uuid import uuid4
-
-from flask import Blueprint, current_app, jsonify, request, url_for
-from werkzeug.utils import secure_filename
+from flask import Blueprint, jsonify, request
+from sqlalchemy import or_
 
 from app.core.auth import admin_required
 from app.core.extensions import db
 from app.models import Order, OrderItem, OrderStatus, PrintRequest, Product, ProductImage
+from app.services.audit_service import list_audit_logs, log_audit_event
 from app.services.auth_service import ensure_admin_user, generate_token, verify_admin_credentials
-from app.services.email_service import send_order_status_changed, send_print_status_changed
-from app.services.order_service import list_orders
+from app.services.email_service import send_print_status_changed
+from app.services.order_service import list_orders, set_order_status
 from app.services.payment_service import PaymentError, update_transfer_status
+from app.services.storage_service import StorageError, delete_local_media_by_url, save_product_images
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
-ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
 
 
 def _product_query():
-    return Product.query.order_by(Product.created_at.desc())
+    query = Product.query.order_by(Product.created_at.desc())
+    q = (request.args.get('q') or '').strip().lower()
+    active = request.args.get('active')
+    if q:
+        like = f'%{q}%'
+        query = query.filter(or_(Product.title.ilike(like), Product.category.ilike(like), Product.tags.ilike(like), Product.sku.ilike(like)))
+    if active in {'true', 'false'}:
+        query = query.filter(Product.is_active.is_(active == 'true'))
+    return query
 
 
 @admin_bp.post('/auth/login')
@@ -67,10 +73,8 @@ def admin_update_order(order_code: str):
     if status not in valid:
         return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado invalido'}}), 400
 
-    order.status = status
-    db.session.commit()
-    send_order_status_changed(order)
-    return jsonify({'ok': True, 'data': order.to_dict()})
+    updated = set_order_status(order, status, reason='admin_manual_update')
+    return jsonify({'ok': True, 'data': updated.to_dict()})
 
 
 @admin_bp.patch('/payments/transfer/<string:order_code>')
@@ -90,7 +94,10 @@ def admin_transfer_status(order_code: str):
 @admin_bp.get('/products')
 @admin_required
 def admin_products():
-    return jsonify({'ok': True, 'data': [product.to_dict() for product in _product_query().all()]})
+    limit = min(int(request.args.get('limit', 100)), 200)
+    offset = max(int(request.args.get('offset', 0)), 0)
+    products = _product_query().offset(offset).limit(limit).all()
+    return jsonify({'ok': True, 'data': [product.to_dict() for product in products]})
 
 
 @admin_bp.post('/products')
@@ -118,6 +125,8 @@ def admin_create_product():
         tags=payload.get('tags'),
     )
     db.session.add(product)
+    db.session.flush()
+    log_audit_event(entity_type='product', entity_id=product.id, action='product.created', after=product.to_dict())
     db.session.commit()
     return jsonify({'ok': True, 'data': product.to_dict()}), 201
 
@@ -129,6 +138,7 @@ def admin_update_product(product_id: int):
     if not product:
         return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
 
+    before = product.to_dict()
     payload = request.get_json(silent=True) or {}
     for attr in ['title', 'description', 'price', 'stock', 'is_active', 'is_offer', 'offer_price', 'sku', 'category', 'tags']:
         if attr in payload:
@@ -136,6 +146,7 @@ def admin_update_product(product_id: int):
     if 'title' in payload:
         product.name = payload['title']
 
+    log_audit_event(entity_type='product', entity_id=product.id, action='product.updated', before=before, after=product.to_dict())
     db.session.commit()
     return jsonify({'ok': True, 'data': product.to_dict()})
 
@@ -146,7 +157,12 @@ def admin_delete_product(product_id: int):
     product = db.session.get(Product, product_id)
     if not product:
         return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
+
+    before = product.to_dict()
+    for image in product.images:
+        delete_local_media_by_url(image.url)
     db.session.delete(product)
+    log_audit_event(entity_type='product', entity_id=product_id, action='product.deleted', before=before)
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -165,6 +181,8 @@ def admin_create_product_image(product_id: int):
 
     image = ProductImage(product_id=product.id, url=url, sort_order=int(payload.get('sort_order', len(product.images))))
     db.session.add(image)
+    db.session.flush()
+    log_audit_event(entity_type='product_image', entity_id=image.id, action='product_image.created', after=image.to_dict(), metadata={'product_id': product.id})
     db.session.commit()
     return jsonify({'ok': True, 'data': image.to_dict()}), 201
 
@@ -180,29 +198,20 @@ def admin_upload_product_images(product_id: int):
     if not files:
         return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Debes adjuntar al menos una imagen.'}}), 400
 
-    upload_dir = os.path.join(current_app.config['UPLOAD_ROOT'], 'products')
-    os.makedirs(upload_dir, exist_ok=True)
+    try:
+        saved_files = save_product_images(product.id, files)
+    except StorageError as exc:
+        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': str(exc)}}), 400
 
     created = []
     sort_order = len(product.images)
-    for file in files:
-        original_name = secure_filename(file.filename or '')
-        ext = os.path.splitext(original_name)[1].lower()
-        if ext not in ALLOWED_IMAGE_EXTENSIONS:
-            continue
-
-        stored_name = f'{product.id}-{uuid4().hex}{ext}'
-        file_path = os.path.join(upload_dir, stored_name)
-        file.save(file_path)
-
-        public_url = url_for('media_file', filename=f'products/{stored_name}', _external=True)
-        image = ProductImage(product_id=product.id, url=public_url, sort_order=sort_order)
+    for item in saved_files:
+        image = ProductImage(product_id=product.id, url=item['url'], sort_order=sort_order)
         db.session.add(image)
+        db.session.flush()
+        log_audit_event(entity_type='product_image', entity_id=image.id, action='product_image.uploaded', after=image.to_dict(), metadata={'product_id': product.id})
         created.append(image)
         sort_order += 1
-
-    if not created:
-        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Solo aceptamos archivos jpg, jpeg, png, webp o gif.'}}), 400
 
     db.session.commit()
     return jsonify({'ok': True, 'data': [image.to_dict() for image in created]})
@@ -214,7 +223,10 @@ def admin_delete_product_image(image_id: int):
     image = db.session.get(ProductImage, image_id)
     if not image:
         return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
+    before = image.to_dict()
+    delete_local_media_by_url(image.url)
     db.session.delete(image)
+    log_audit_event(entity_type='product_image', entity_id=image_id, action='product_image.deleted', before=before, metadata={'product_id': before['product_id']})
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -236,10 +248,22 @@ def admin_patch_print(print_code: str):
     status = (payload.get('status') or '').upper()
     if status not in {'RECEIVED', 'IN_PROGRESS', 'READY', 'DELIVERED', 'CANCELED'}:
         return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado invalido'}}), 400
+    previous = item.to_dict()
     item.status = status
+    log_audit_event(entity_type='print_request', entity_id=item.print_code, action='print_request.status_changed', before={'status': previous['status']}, after={'status': item.status})
     db.session.commit()
     send_print_status_changed(item)
     return jsonify({'ok': True, 'data': item.to_dict()})
+
+
+@admin_bp.get('/audit-logs')
+@admin_required
+def admin_audit_logs():
+    entity_type = request.args.get('entity_type')
+    limit = min(int(request.args.get('limit', 100)), 200)
+    offset = max(int(request.args.get('offset', 0)), 0)
+    items = list_audit_logs(entity_type=entity_type, limit=limit, offset=offset)
+    return jsonify({'ok': True, 'data': [item.to_dict() for item in items]})
 
 
 @admin_bp.get('/metrics')

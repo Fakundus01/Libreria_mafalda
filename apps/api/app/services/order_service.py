@@ -5,11 +5,22 @@ from flask import current_app, g
 
 from app.core.extensions import db
 from app.models import FulfillmentType, Order, OrderItem, OrderStatus, Product
-from app.services.email_service import send_order_created_email
+from app.services.audit_service import log_audit_event
+from app.services.email_service import send_order_created_email, send_order_status_changed
 
 
 class OrderValidationError(ValueError):
     pass
+
+
+STOCK_RESERVED_STATUSES = {
+    OrderStatus.PENDING_PAYMENT.value,
+    OrderStatus.PAID.value,
+    OrderStatus.PREPARING.value,
+    OrderStatus.READY_FOR_PICKUP.value,
+    OrderStatus.OUT_FOR_DELIVERY.value,
+    OrderStatus.COMPLETED.value,
+}
 
 
 def _build_order_code() -> str:
@@ -23,19 +34,40 @@ def _validate_delivery(fulfillment_type: str, delivery_address: dict | None):
         return None
 
     if not delivery_address:
-        raise OrderValidationError('Debe completar dirección para envío.')
+        raise OrderValidationError('Debe completar direccion para envio.')
 
     area = (delivery_address.get('area') or delivery_address.get('barrio') or '').strip().lower()
     allowed_areas = current_app.config['DELIVERY_ALLOWED_AREAS']
     if area not in allowed_areas:
-        raise OrderValidationError('Solo realizamos envíos en Villa Maipú.')
+        raise OrderValidationError('Solo realizamos envios en Villa Maipu.')
 
     return delivery_address
 
 
+def _has_reserved_stock(status: str | None) -> bool:
+    return bool(status and status in STOCK_RESERVED_STATUSES)
+
+
+def _reserve_stock(order: Order):
+    for item in order.items:
+        product = db.session.get(Product, item.product_id)
+        if not product or not product.is_active:
+            raise OrderValidationError(f'Producto invalido: {item.product_id}')
+        if product.stock < item.quantity:
+            raise OrderValidationError(f'Stock insuficiente para {product.title}.')
+        product.stock -= item.quantity
+
+
+def _release_stock(order: Order):
+    for item in order.items:
+        product = db.session.get(Product, item.product_id)
+        if product:
+            product.stock += item.quantity
+
+
 def create_order(payload: dict) -> Order:
     customer_name = (payload.get('name') or '').strip()
-    customer_email = (payload.get('email') or '').strip()
+    customer_email = (payload.get('email') or '').strip().lower()
     customer_phone = (payload.get('phone') or '').strip() or None
     fulfillment_type = (payload.get('fulfillment_type') or '').strip().upper()
     items = payload.get('items') or []
@@ -44,10 +76,10 @@ def create_order(payload: dict) -> Order:
         raise OrderValidationError('Nombre y email son obligatorios.')
 
     if fulfillment_type not in {FulfillmentType.PICKUP.value, FulfillmentType.DELIVERY.value}:
-        raise OrderValidationError('Tipo de entrega inválido.')
+        raise OrderValidationError('Tipo de entrega invalido.')
 
     if not isinstance(items, list) or not items:
-        raise OrderValidationError('El carrito no puede estar vacío.')
+        raise OrderValidationError('El carrito no puede estar vacio.')
 
     delivery_address = _validate_delivery(fulfillment_type, payload.get('delivery_address'))
 
@@ -69,11 +101,11 @@ def create_order(payload: dict) -> Order:
         qty = int(item.get('qty', 0))
 
         if qty <= 0:
-            raise OrderValidationError('Cantidad inválida en carrito.')
+            raise OrderValidationError('Cantidad invalida en carrito.')
 
         product = db.session.get(Product, product_id)
         if not product or not product.is_active:
-            raise OrderValidationError(f'Producto inválido: {product_id}')
+            raise OrderValidationError(f'Producto invalido: {product_id}')
 
         if product.stock < qty:
             raise OrderValidationError(f'Stock insuficiente para {product.title}.')
@@ -95,8 +127,45 @@ def create_order(payload: dict) -> Order:
 
     order.total_amount = total
     db.session.add(order)
+    db.session.flush()
+    log_audit_event(
+        entity_type='order',
+        entity_id=order.order_code,
+        action='order.created',
+        after={
+            'status': order.status,
+            'total_amount': float(order.total_amount),
+            'fulfillment_type': order.fulfillment_type,
+        },
+        metadata={'items_count': len(order.items)},
+    )
     db.session.commit()
     send_order_created_email(order)
+    return order
+
+
+def set_order_status(order: Order, status: str, *, reason: str | None = None, actor=None):
+    previous_status = order.status
+    if status == previous_status:
+        return order
+
+    if _has_reserved_stock(previous_status) and not _has_reserved_stock(status):
+        _release_stock(order)
+    elif not _has_reserved_stock(previous_status) and _has_reserved_stock(status):
+        _reserve_stock(order)
+
+    order.status = status
+    log_audit_event(
+        entity_type='order',
+        entity_id=order.order_code,
+        action='order.status_changed',
+        before={'status': previous_status},
+        after={'status': status},
+        metadata={'reason': reason},
+        actor=actor,
+    )
+    db.session.commit()
+    send_order_status_changed(order)
     return order
 
 

@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 from app import create_app
@@ -15,8 +17,11 @@ def app_instance():
         db.session.add(product)
         db.session.commit()
         yield app
+        upload_root = app.config.get('UPLOAD_ROOT')
         db.session.remove()
         db.drop_all()
+        if upload_root:
+            shutil.rmtree(upload_root, ignore_errors=True)
 
 
 @pytest.fixture()
@@ -32,8 +37,11 @@ def disabled_app():
     with app.app_context():
         db.create_all()
         yield app
+        upload_root = app.config.get('UPLOAD_ROOT')
         db.session.remove()
         db.drop_all()
+        if upload_root:
+            shutil.rmtree(upload_root, ignore_errors=True)
     TestingConfig.ENABLE_ECOMMERCE = prev
 
 
