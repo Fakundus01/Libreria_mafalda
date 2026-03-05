@@ -11,12 +11,6 @@ def str_to_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
 
-def str_to_bool(value: str | None, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
-
-
 class Config:
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
@@ -31,18 +25,18 @@ class Config:
     _cors = os.getenv('CORS_ORIGINS', 'http://localhost:5173')
     CORS_ORIGINS = [origin.strip() for origin in _cors.split(',') if origin.strip()]
 
-    ENABLE_ECOMMERCE = str_to_bool(os.getenv('ENABLE_ECOMMERCE'), default=False)
+    ENABLE_ECOMMERCE = str_to_bool(os.getenv('ENABLE_ECOMMERCE'), default=True)
 
-    SITE_NAME = os.getenv('SITE_NAME', 'Librería Mafalda')
-    SITE_ADDRESS = os.getenv('SITE_ADDRESS', 'Estrada 2380, B1650 Villa Maipú, Provincia de Buenos Aires')
+    SITE_NAME = os.getenv('SITE_NAME', 'Libreria Mafalda')
+    SITE_ADDRESS = os.getenv('SITE_ADDRESS', 'Estrada 2380, B1650 Villa Maipu, Provincia de Buenos Aires')
     SITE_PHONE = os.getenv('SITE_PHONE', '01131875770')
     SITE_EMAIL = os.getenv('SITE_EMAIL', 'mafaldalibreria@hotmail.com')
     SITE_HOURS = [
         {'day': 'Lunes a viernes', 'time': '9:00 a 15:00'},
-        {'day': 'Sábados', 'time': '9:00 a 13:00'},
+        {'day': 'Sabados', 'time': '9:00 a 13:00'},
     ]
 
-    DELIVERY_ALLOWED_AREAS = [item.strip().lower() for item in os.getenv('DELIVERY_ALLOWED_AREAS', 'Villa Maipú').split(',') if item.strip()]
+    DELIVERY_ALLOWED_AREAS = [item.strip().lower() for item in os.getenv('DELIVERY_ALLOWED_AREAS', 'Villa Maipu').split(',') if item.strip()]
 
     ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@mafalda.local')
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'change-me')
@@ -52,7 +46,6 @@ class Config:
     MP_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', '')
     MP_WEBHOOK_SECRET = os.getenv('MP_WEBHOOK_SECRET', '')
     MP_BASE_URL = os.getenv('MP_BASE_URL', 'https://api.mercadopago.com')
-
 
     EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'log')
     EMAIL_FROM = os.getenv('EMAIL_FROM', 'no-reply@libreriamafalda.local')
@@ -65,10 +58,6 @@ class Config:
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite+pysqlite:///:memory:'
-    ENABLE_ECOMMERCE = True
-    ADMIN_EMAIL = 'admin@test.com'
-    ADMIN_PASSWORD = 'secret123'
-    ADMIN_JWT_SECRET = 'test-secret'
     ENABLE_ECOMMERCE = True
     ADMIN_EMAIL = 'admin@test.com'
     ADMIN_PASSWORD = 'secret123'

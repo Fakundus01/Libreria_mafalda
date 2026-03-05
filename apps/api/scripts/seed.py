@@ -1,7 +1,5 @@
 from decimal import Decimal
 
-from decimal import Decimal
-
 from app import create_app
 from app.core.extensions import db
 from app.models import ContactMessage, Product, ProductImage
@@ -13,9 +11,9 @@ app = create_app()
 PRODUCTS = [
     ('SKU-001', 'Cuaderno Universitario', 'Tapa dura, 84 hojas', Decimal('7500.00'), 25, False, None),
     ('SKU-002', 'Set de resaltadores', 'Pack x6 colores', Decimal('6200.00'), 18, True, Decimal('5400.00')),
-    ('SKU-003', 'Novela clásica', 'Edición bolsillo', Decimal('12900.00'), 9, False, None),
+    ('SKU-003', 'Novela clasica', 'Edicion bolsillo', Decimal('12900.00'), 9, False, None),
     ('SKU-004', 'Agenda semanal', 'Formato A5', Decimal('9400.00'), 13, True, Decimal('8200.00')),
-    ('SKU-005', 'Kit escolar', 'Lápiz, goma, regla y sacapuntas', Decimal('15700.00'), 12, False, None),
+    ('SKU-005', 'Kit escolar', 'Lapiz, goma, regla y sacapuntas', Decimal('15700.00'), 12, False, None),
     ('SKU-006', 'Cartuchera artesanal', 'Tela estampada', Decimal('8300.00'), 14, False, None),
     ('SKU-007', 'Block dibujo A4', '80 hojas blancas', Decimal('6800.00'), 21, False, None),
     ('SKU-008', 'Lapicera roller', 'Tinta negra, trazo fino', Decimal('2700.00'), 40, False, None),
@@ -30,9 +28,9 @@ with app.app_context():
     ensure_admin_user()
 
     contacts = [
-        ContactMessage(name='Ana Pérez', email='ana@example.com', message='Hola, quiero consultar por útiles escolares.'),
-        ContactMessage(name='Carlos Díaz', email='carlos@example.com', message='¿Tienen novelas de autores argentinos?'),
-        ContactMessage(name='Luisa Gómez', email='luisa@example.com', message='Necesito imprimir apuntes para la facultad.'),
+        ContactMessage(name='Ana Perez', email='ana@example.com', message='Hola, quiero consultar por utiles escolares.'),
+        ContactMessage(name='Carlos Diaz', email='carlos@example.com', message='Tienen novelas de autores argentinos?'),
+        ContactMessage(name='Luisa Gomez', email='luisa@example.com', message='Necesito imprimir apuntes para la facultad.'),
     ]
 
     db.session.add_all(contacts)
@@ -48,7 +46,7 @@ with app.app_context():
             stock=stock,
             is_offer=is_offer,
             offer_price=offer_price,
-            category='Librería',
+            category='Libreria',
             tags='demo,mafalda',
         )
         db.session.add(product)

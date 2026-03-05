@@ -1,40 +1,47 @@
 import { apiBaseUrl } from '../config/site';
 
-function getAuthHeaders() {
-  const token = localStorage.getItem('mafalda_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+function buildHeaders({ auth = false, token, headers = {}, hasBody = false }) {
+  const authToken = token || (auth ? localStorage.getItem('mafalda_token') : '');
+  return {
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...headers,
+  };
 }
 
-export async function apiGet(path, withAuth = false) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    headers: withAuth ? getAuthHeaders() : {},
+async function apiRequest(path, { method = 'GET', body, auth = false, token, headers = {} } = {}) {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    method,
+    headers: buildHeaders({ auth, token, headers, hasBody: body !== undefined }),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.error?.message || 'No se pudo cargar. Intentá nuevamente.');
-  return json;
-}
 
-export async function apiPost(path, body, headers = {}) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders(), ...headers },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json();
-  if (!res.ok) {
-    throw new Error(json?.error?.message || 'No se pudo procesar la solicitud.');
+  const raw = await response.text();
+  let json = {};
+
+  if (raw) {
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      json = {};
+    }
   }
+
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'No se pudo completar la solicitud.');
+  }
+
   return json;
 }
 
-export async function apiPatch(path, body, token) {
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : getAuthHeaders();
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...authHeader },
-    body: JSON.stringify(body),
-  });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json?.error?.message || 'No se pudo actualizar. Intentá nuevamente.');
-  return json;
+export function apiGet(path, options = {}) {
+  return apiRequest(path, { method: 'GET', ...options });
+}
+
+export function apiPost(path, body, options = {}) {
+  return apiRequest(path, { method: 'POST', body, ...options });
+}
+
+export function apiPatch(path, body, options = {}) {
+  return apiRequest(path, { method: 'PATCH', body, ...options });
 }

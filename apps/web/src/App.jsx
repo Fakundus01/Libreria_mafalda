@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ecommerceEnabled } from './config/site';
+import { useShop } from './context/ShopContext';
 import AdminPage from './pages/AdminPage';
 import CartPage from './pages/CartPage';
 import CatalogPage from './pages/CatalogPage';
@@ -18,8 +19,23 @@ import SignupPage from './pages/SignupPage';
 import TransferPage from './pages/TransferPage';
 import UnavailablePage from './pages/UnavailablePage';
 
-function EcommerceRoute({ element }) {
-  return ecommerceEnabled ? element : <UnavailablePage />;
+function EcommerceRoute({ children }) {
+  return ecommerceEnabled ? children : <UnavailablePage />;
+}
+
+function RequireAuth({ children }) {
+  const { isAuthenticated } = useShop();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function RequireGuest({ children }) {
+  const { isAuthenticated } = useShop();
+  return isAuthenticated ? <Navigate to="/profile" replace /> : children;
+}
+
+function RequireCart({ children }) {
+  const { cart } = useShop();
+  return cart.length ? children : <Navigate to="/cart" replace />;
 }
 
 function App() {
@@ -27,21 +43,21 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/catalogo" element={ecommerceEnabled ? <Navigate to="/shop" replace /> : <UnavailablePage />} />
-      <Route path="/shop" element={<EcommerceRoute element={<ShopPage />} />} />
-      <Route path="/product/:id" element={<EcommerceRoute element={<ProductDetailPage />} />} />
-      <Route path="/cart" element={<EcommerceRoute element={<CartPage />} />} />
-      <Route path="/checkout" element={<EcommerceRoute element={<CheckoutPage />} />} />
-      <Route path="/checkout/success" element={<EcommerceRoute element={<CheckoutSuccessPage />} />} />
-      <Route path="/checkout/failure" element={<EcommerceRoute element={<CheckoutFailurePage />} />} />
-      <Route path="/transfer/:orderCode" element={<EcommerceRoute element={<TransferPage />} />} />
-      <Route path="/prints" element={<EcommerceRoute element={<PrintsPage />} />} />
-      <Route path="/prints/:printCode" element={<EcommerceRoute element={<PrintTrackingPage />} />} />
-      <Route path="/login" element={<EcommerceRoute element={<LoginPage />} />} />
-      <Route path="/signup" element={<EcommerceRoute element={<SignupPage />} />} />
-      <Route path="/profile" element={<EcommerceRoute element={<ProfilePage />} />} />
-      <Route path="/admin" element={<EcommerceRoute element={<AdminPage />} />} />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="/shop" element={<EcommerceRoute><ShopPage /></EcommerceRoute>} />
+      <Route path="/product/:id" element={<EcommerceRoute><ProductDetailPage /></EcommerceRoute>} />
+      <Route path="/cart" element={<EcommerceRoute><CartPage /></EcommerceRoute>} />
+      <Route path="/checkout" element={<EcommerceRoute><RequireCart><CheckoutPage /></RequireCart></EcommerceRoute>} />
+      <Route path="/checkout/success" element={<EcommerceRoute><CheckoutSuccessPage /></EcommerceRoute>} />
+      <Route path="/checkout/failure" element={<EcommerceRoute><CheckoutFailurePage /></EcommerceRoute>} />
+      <Route path="/transfer/:orderCode" element={<EcommerceRoute><TransferPage /></EcommerceRoute>} />
+      <Route path="/prints" element={<EcommerceRoute><PrintsPage /></EcommerceRoute>} />
+      <Route path="/prints/:printCode" element={<EcommerceRoute><PrintTrackingPage /></EcommerceRoute>} />
+      <Route path="/login" element={<EcommerceRoute><RequireGuest><LoginPage /></RequireGuest></EcommerceRoute>} />
+      <Route path="/signup" element={<EcommerceRoute><RequireGuest><SignupPage /></RequireGuest></EcommerceRoute>} />
+      <Route path="/profile" element={<EcommerceRoute><RequireAuth><ProfilePage /></RequireAuth></EcommerceRoute>} />
+      <Route path="/admin" element={<EcommerceRoute><AdminPage /></EcommerceRoute>} />
       <Route path="/legacy-catalog" element={<CatalogPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

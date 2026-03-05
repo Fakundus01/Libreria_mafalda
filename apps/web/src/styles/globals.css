@@ -1,8 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  color: #1f2937;
+  background:
+    radial-gradient(circle at top left, rgba(255, 209, 102, 0.45), transparent 28%),
+    radial-gradient(circle at top right, rgba(127, 227, 197, 0.35), transparent 22%),
+    linear-gradient(180deg, #fff7ef 0%, #fffaf6 52%, #fff2e7 100%);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 html {
   scroll-behavior: smooth;
@@ -10,14 +27,90 @@ html {
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background: #f5efe6;
-  color: #2f241d;
+  min-width: 320px;
+  min-height: 100vh;
+  color: #1f2937;
+  background: transparent;
 }
 
-h1,
-h2,
-h3,
-h4 {
-  font-family: 'Cormorant Garamond', serif;
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(255, 122, 89, 0.25);
+}
+
+.input-field,
+.select-field,
+.textarea-field {
+  width: 100%;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1f2937;
+  padding: 0.95rem 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.input-field:focus,
+.select-field:focus,
+.textarea-field:focus {
+  border-color: rgba(255, 122, 89, 0.65);
+  box-shadow: 0 0 0 4px rgba(255, 122, 89, 0.12);
+}
+
+.textarea-field {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-panel::before {
+  content: '';
+  position: absolute;
+  inset: -20% 40% 35% -10%;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.32);
+  filter: blur(28px);
+}
+
+.hero-panel::after {
+  content: '';
+  position: absolute;
+  inset: 45% -10% -15% 35%;
+  border-radius: 999px;
+  background: rgba(127, 227, 197, 0.28);
+  filter: blur(32px);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.7) 20%, rgba(255,209,102,0.45) 50%, rgba(255,255,255,0.7) 80%);
+  background-size: 200% 100%;
+}
+
+.page-dots {
+  background-image: radial-gradient(circle, rgba(31,41,55,0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
 }

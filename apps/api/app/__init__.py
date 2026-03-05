@@ -4,7 +4,6 @@ from flask import Flask
 
 from . import models  # noqa: F401
 from .admin.routes import admin_bp
-from .admin.routes import admin_bp
 from .api.routes import api_bp
 from .auth.routes import auth_bp
 from .core.config import get_config
@@ -36,7 +35,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     app.register_blueprint(api_bp)
 
-    if app.config['ENABLE_ECOMMERCE']:
+    if app.config.get('ENABLE_ECOMMERCE', True):
         app.register_blueprint(auth_bp)
         app.register_blueprint(ecommerce_bp)
         app.register_blueprint(payments_bp)
