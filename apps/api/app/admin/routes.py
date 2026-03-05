@@ -1,4 +1,8 @@
-from flask import Blueprint, jsonify, request
+import os
+from uuid import uuid4
+
+from flask import Blueprint, current_app, jsonify, request, url_for
+from werkzeug.utils import secure_filename
 
 from app.core.auth import admin_required
 from app.core.extensions import db
@@ -10,6 +14,11 @@ from app.services.payment_service import PaymentError, update_transfer_status
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp', '.gif'}
+
+
+def _product_query():
+    return Product.query.order_by(Product.created_at.desc())
 
 
 @admin_bp.post('/auth/login')
@@ -19,7 +28,7 @@ def admin_login():
     password = (payload.get('password') or '').strip()
 
     if not verify_admin_credentials(email, password):
-        return jsonify({'ok': False, 'error': {'code': 'invalid_credentials', 'message': 'Credenciales inválidas'}}), 401
+        return jsonify({'ok': False, 'error': {'code': 'invalid_credentials', 'message': 'Credenciales invalidas'}}), 401
 
     admin = ensure_admin_user()
     token = generate_token(user_id=admin.id, email=admin.email, role='ADMIN')
@@ -41,7 +50,7 @@ def admin_orders():
 def admin_order_detail(order_code: str):
     order = Order.query.filter_by(order_code=order_code).first()
     if not order:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
     return jsonify({'ok': True, 'data': order.to_dict()})
 
 
@@ -50,13 +59,13 @@ def admin_order_detail(order_code: str):
 def admin_update_order(order_code: str):
     order = Order.query.filter_by(order_code=order_code).first()
     if not order:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
 
     payload = request.get_json(silent=True) or {}
     status = (payload.get('status') or '').upper()
     valid = {item.value for item in OrderStatus}
     if status not in valid:
-        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado inválido'}}), 400
+        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado invalido'}}), 400
 
     order.status = status
     db.session.commit()
@@ -70,12 +79,18 @@ def admin_transfer_status(order_code: str):
     payload = request.get_json(silent=True) or {}
     status = (payload.get('status') or '').upper()
     if status not in {'APPROVED', 'REJECTED'}:
-        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado inválido'}}), 400
+        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado invalido'}}), 400
     try:
         data = update_transfer_status(order_code, status)
     except PaymentError as exc:
         return jsonify({'ok': False, 'error': {'code': 'payment_error', 'message': str(exc)}}), 404
     return jsonify({'ok': True, 'data': data})
+
+
+@admin_bp.get('/products')
+@admin_required
+def admin_products():
+    return jsonify({'ok': True, 'data': [product.to_dict() for product in _product_query().all()]})
 
 
 @admin_bp.post('/products')
@@ -112,7 +127,7 @@ def admin_create_product():
 def admin_update_product(product_id: int):
     product = db.session.get(Product, product_id)
     if not product:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
 
     payload = request.get_json(silent=True) or {}
     for attr in ['title', 'description', 'price', 'stock', 'is_active', 'is_offer', 'offer_price', 'sku', 'category', 'tags']:
@@ -130,7 +145,7 @@ def admin_update_product(product_id: int):
 def admin_delete_product(product_id: int):
     product = db.session.get(Product, product_id)
     if not product:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
     db.session.delete(product)
     db.session.commit()
     return jsonify({'ok': True})
@@ -141,17 +156,56 @@ def admin_delete_product(product_id: int):
 def admin_create_product_image(product_id: int):
     product = db.session.get(Product, product_id)
     if not product:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
 
     payload = request.get_json(silent=True) or {}
     url = (payload.get('url') or '').strip()
     if not url:
         return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'url es obligatoria'}}), 400
 
-    image = ProductImage(product_id=product.id, url=url, sort_order=int(payload.get('sort_order', 0)))
+    image = ProductImage(product_id=product.id, url=url, sort_order=int(payload.get('sort_order', len(product.images))))
     db.session.add(image)
     db.session.commit()
     return jsonify({'ok': True, 'data': image.to_dict()}), 201
+
+
+@admin_bp.post('/products/<int:product_id>/images/upload')
+@admin_required
+def admin_upload_product_images(product_id: int):
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
+
+    files = request.files.getlist('images')
+    if not files:
+        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Debes adjuntar al menos una imagen.'}}), 400
+
+    upload_dir = os.path.join(current_app.config['UPLOAD_ROOT'], 'products')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    created = []
+    sort_order = len(product.images)
+    for file in files:
+        original_name = secure_filename(file.filename or '')
+        ext = os.path.splitext(original_name)[1].lower()
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            continue
+
+        stored_name = f'{product.id}-{uuid4().hex}{ext}'
+        file_path = os.path.join(upload_dir, stored_name)
+        file.save(file_path)
+
+        public_url = url_for('media_file', filename=f'products/{stored_name}', _external=True)
+        image = ProductImage(product_id=product.id, url=public_url, sort_order=sort_order)
+        db.session.add(image)
+        created.append(image)
+        sort_order += 1
+
+    if not created:
+        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Solo aceptamos archivos jpg, jpeg, png, webp o gif.'}}), 400
+
+    db.session.commit()
+    return jsonify({'ok': True, 'data': [image.to_dict() for image in created]})
 
 
 @admin_bp.delete('/product-images/<int:image_id>')
@@ -159,12 +213,10 @@ def admin_create_product_image(product_id: int):
 def admin_delete_product_image(image_id: int):
     image = db.session.get(ProductImage, image_id)
     if not image:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
     db.session.delete(image)
     db.session.commit()
     return jsonify({'ok': True})
-
-
 
 
 @admin_bp.get('/prints')
@@ -173,16 +225,17 @@ def admin_prints():
     items = PrintRequest.query.order_by(PrintRequest.created_at.desc()).all()
     return jsonify({'ok': True, 'data': [item.to_dict() for item in items]})
 
+
 @admin_bp.patch('/prints/<string:print_code>')
 @admin_required
 def admin_patch_print(print_code: str):
     item = PrintRequest.query.filter_by(print_code=print_code).first()
     if not item:
-        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscás.'}}), 404
+        return jsonify({'ok': False, 'error': {'code': 'not_found', 'message': 'No encontramos lo que buscas.'}}), 404
     payload = request.get_json(silent=True) or {}
     status = (payload.get('status') or '').upper()
     if status not in {'RECEIVED', 'IN_PROGRESS', 'READY', 'DELIVERED', 'CANCELED'}:
-        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado inválido'}}), 400
+        return jsonify({'ok': False, 'error': {'code': 'validation_error', 'message': 'Estado invalido'}}), 400
     item.status = status
     db.session.commit()
     send_print_status_changed(item)

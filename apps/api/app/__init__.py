@@ -1,6 +1,7 @@
 import logging
+import os
 
-from flask import Flask
+from flask import Flask, send_from_directory
 
 from . import models  # noqa: F401
 from .admin.routes import admin_bp
@@ -18,6 +19,10 @@ def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app_config = get_config(config_name)
     app.config.from_object(app_config)
+
+    upload_root = app.config.get('UPLOAD_ROOT') or os.path.join(app.instance_path, 'uploads')
+    os.makedirs(upload_root, exist_ok=True)
+    app.config['UPLOAD_ROOT'] = upload_root
 
     logging.basicConfig(
         level=app.config['LOG_LEVEL'],
@@ -47,5 +52,9 @@ def create_app(config_name: str | None = None) -> Flask:
     @app.get('/health')
     def healthcheck():
         return {'status': 'ok'}
+
+    @app.get('/media/<path:filename>')
+    def media_file(filename: str):
+        return send_from_directory(app.config['UPLOAD_ROOT'], filename)
 
     return app

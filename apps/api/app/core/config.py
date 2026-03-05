@@ -22,7 +22,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    _cors = os.getenv('CORS_ORIGINS', 'http://localhost:5173')
+    _cors = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173')
     CORS_ORIGINS = [origin.strip() for origin in _cors.split(',') if origin.strip()]
 
     ENABLE_ECOMMERCE = str_to_bool(os.getenv('ENABLE_ECOMMERCE'), default=True)
@@ -54,6 +54,9 @@ class Config:
     EMAIL_USER = os.getenv('EMAIL_USER', '')
     EMAIL_PASS = os.getenv('EMAIL_PASS', '')
 
+    UPLOAD_ROOT = os.getenv('UPLOAD_ROOT')
+    MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', str(8 * 1024 * 1024)))
+
 
 class TestingConfig(Config):
     TESTING = True
@@ -62,6 +65,7 @@ class TestingConfig(Config):
     ADMIN_EMAIL = 'admin@test.com'
     ADMIN_PASSWORD = 'secret123'
     ADMIN_JWT_SECRET = 'test-secret'
+    UPLOAD_ROOT = os.path.join(os.getcwd(), 'instance', 'test-uploads')
 
 
 CONFIG_MAP = {

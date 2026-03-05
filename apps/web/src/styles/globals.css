@@ -114,3 +114,45 @@ img {
   background-image: radial-gradient(circle, rgba(31,41,55,0.08) 1px, transparent 1px);
   background-size: 16px 16px;
 }
+
+.cart-entry {
+  opacity: 0;
+  animation: cartIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.cart-summary {
+  animation: cartFloat 7s ease-in-out infinite;
+}
+
+.qty-chip {
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qty-chip:hover {
+  transform: scale(1.08);
+  background-color: #ffe4bc;
+  box-shadow: 0 10px 24px rgba(255, 122, 89, 0.16);
+}
+
+@keyframes cartIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cartFloat {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
