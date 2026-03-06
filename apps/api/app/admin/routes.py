@@ -1,4 +1,4 @@
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from sqlalchemy import or_
 
 from app.core.auth import admin_required
@@ -54,7 +54,24 @@ def admin_login():
 
     admin = ensure_admin_user()
     token = generate_token(user_id=admin.id, email=admin.email, role='ADMIN')
-    return jsonify({'ok': True, 'token': token})
+    response = jsonify({'ok': True, 'token': token, 'user': admin.to_dict()})
+    response.set_cookie(
+        current_app.config['ADMIN_COOKIE_NAME'],
+        token,
+        max_age=current_app.config['ADMIN_JWT_EXPIRES_MINUTES'] * 60,
+        httponly=True,
+        secure=current_app.config['ADMIN_COOKIE_SECURE'],
+        samesite=current_app.config['ADMIN_COOKIE_SAMESITE'],
+        path='/',
+    )
+    return response
+
+
+@admin_bp.post('/auth/logout')
+def admin_logout():
+    response = jsonify({'ok': True})
+    response.delete_cookie(current_app.config['ADMIN_COOKIE_NAME'], path='/')
+    return response
 
 
 @admin_bp.get('/me')

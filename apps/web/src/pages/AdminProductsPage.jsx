@@ -26,7 +26,7 @@ const emptyProductForm = {
 };
 
 function AdminProductsPage() {
-  const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
+  const { adminUser, checkingAccess, accessError } = useAdminAccess();
   const [products, setProducts] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(0);
@@ -43,9 +43,7 @@ function AdminProductsPage() {
   const lowStockCount = useMemo(() => products.filter((item) => Number(item.stock) <= 5).length, [products]);
 
   const loadProducts = async () => {
-    if (!adminToken) return;
-
-    setLoading(true);
+        setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams({
@@ -54,7 +52,7 @@ function AdminProductsPage() {
       });
       if (query.trim()) params.set('q', query.trim());
       if (activeFilter !== 'all') params.set('active', activeFilter);
-      const response = await apiGet(`/api/admin/products?${params.toString()}`, { token: adminToken });
+      const response = await apiGet(`/api/admin/products?${params.toString()}`);
       setProducts(response.data || []);
       setMeta(response.meta || null);
     } catch (requestError) {
@@ -65,9 +63,9 @@ function AdminProductsPage() {
   };
 
   useEffect(() => {
-    if (!adminToken || checkingAccess) return;
+    if (checkingAccess) return;
     loadProducts();
-  }, [adminToken, checkingAccess, page, query, activeFilter]);
+  }, [checkingAccess, page, query, activeFilter]);
 
   const resetProductEditor = () => {
     setEditingProductId(null);
@@ -105,9 +103,9 @@ function AdminProductsPage() {
 
     try {
       if (editingProductId) {
-        await apiPut(`/api/admin/products/${editingProductId}`, payload, { token: adminToken });
+        await apiPut(`/api/admin/products/${editingProductId}`, payload);
       } else {
-        await apiPost('/api/admin/products', payload, { token: adminToken });
+        await apiPost('/api/admin/products', payload);
       }
       resetProductEditor();
       await loadProducts();
@@ -120,7 +118,7 @@ function AdminProductsPage() {
 
   const removeProduct = async (productId) => {
     try {
-      await apiDelete(`/api/admin/products/${productId}`, { token: adminToken });
+      await apiDelete(`/api/admin/products/${productId}`);
       if (editingProductId === productId) resetProductEditor();
       await loadProducts();
     } catch (requestError) {
@@ -133,7 +131,7 @@ function AdminProductsPage() {
     if (!url) return;
 
     try {
-      await apiPost(`/api/admin/products/${productId}/images`, { url }, { token: adminToken });
+      await apiPost(`/api/admin/products/${productId}/images`, { url });
       setImageInputs((current) => ({ ...current, [productId]: '' }));
       await loadProducts();
     } catch (requestError) {
@@ -149,7 +147,7 @@ function AdminProductsPage() {
     try {
       const formData = new FormData();
       Array.from(files).forEach((file) => formData.append('images', file));
-      await apiPost(`/api/admin/products/${productId}/images/upload`, formData, { token: adminToken });
+      await apiPost(`/api/admin/products/${productId}/images/upload`, formData);
       await loadProducts();
     } catch (requestError) {
       setError(requestError.message || 'No se pudieron subir las imagenes.');
@@ -160,7 +158,7 @@ function AdminProductsPage() {
 
   const removeImage = async (imageId) => {
     try {
-      await apiDelete(`/api/admin/product-images/${imageId}`, { token: adminToken });
+      await apiDelete(`/api/admin/product-images/${imageId}`);
       await loadProducts();
     } catch (requestError) {
       setError(requestError.message || 'No se pudo eliminar la imagen.');

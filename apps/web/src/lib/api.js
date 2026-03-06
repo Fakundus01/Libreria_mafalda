@@ -1,4 +1,4 @@
-import { apiBaseUrl } from '../config/site';
+﻿import { apiBaseUrl } from '../config/site';
 
 function buildHeaders({ auth = false, token, headers = {}, hasJsonBody = false }) {
   const authToken = token || (auth ? localStorage.getItem('mafalda_token') : '');
@@ -13,6 +13,7 @@ async function apiRequest(path, { method = 'GET', body, auth = false, token, hea
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
+    credentials: 'include',
     headers: buildHeaders({ auth, token, headers, hasJsonBody: body !== undefined && !isFormData }),
     body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });

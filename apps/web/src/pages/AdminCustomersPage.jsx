@@ -11,7 +11,7 @@ import { formatCurrency, formatDateTime } from '../lib/format';
 const PAGE_SIZE = 8;
 
 function AdminCustomersPage() {
-  const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
+  const { adminUser, checkingAccess, accessError } = useAdminAccess();
   const [customers, setCustomers] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(0);
@@ -20,7 +20,6 @@ function AdminCustomersPage() {
   const [error, setError] = useState('');
 
   const loadCustomers = async () => {
-    if (!adminToken) return;
     setLoading(true);
     setError('');
 
@@ -30,7 +29,7 @@ function AdminCustomersPage() {
         offset: String(page * PAGE_SIZE),
       });
       if (query.trim()) params.set('q', query.trim());
-      const response = await apiGet(`/api/admin/customers?${params.toString()}`, { token: adminToken });
+      const response = await apiGet(`/api/admin/customers?${params.toString()}`);
       setCustomers(response.data || []);
       setMeta(response.meta || null);
     } catch (requestError) {
@@ -41,9 +40,9 @@ function AdminCustomersPage() {
   };
 
   useEffect(() => {
-    if (!adminToken || checkingAccess) return;
+    if (checkingAccess) return;
     loadCustomers();
-  }, [adminToken, checkingAccess, page, query]);
+  }, [checkingAccess, page, query]);
 
   if (checkingAccess) {
     return (

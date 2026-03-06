@@ -11,7 +11,7 @@ import { formatDateTime } from '../lib/format';
 const PAGE_SIZE = 8;
 
 function AdminMessagesPage() {
-  const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
+  const { adminUser, checkingAccess, accessError } = useAdminAccess();
   const [messages, setMessages] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(0);
@@ -20,7 +20,6 @@ function AdminMessagesPage() {
   const [error, setError] = useState('');
 
   const loadMessages = async () => {
-    if (!adminToken) return;
     setLoading(true);
     setError('');
 
@@ -30,7 +29,7 @@ function AdminMessagesPage() {
         offset: String(page * PAGE_SIZE),
       });
       if (query.trim()) params.set('q', query.trim());
-      const response = await apiGet(`/api/admin/messages?${params.toString()}`, { token: adminToken });
+      const response = await apiGet(`/api/admin/messages?${params.toString()}`);
       setMessages(response.data || []);
       setMeta(response.meta || null);
     } catch (requestError) {
@@ -41,9 +40,9 @@ function AdminMessagesPage() {
   };
 
   useEffect(() => {
-    if (!adminToken || checkingAccess) return;
+    if (checkingAccess) return;
     loadMessages();
-  }, [adminToken, checkingAccess, page, query]);
+  }, [checkingAccess, page, query]);
 
   if (checkingAccess) {
     return (

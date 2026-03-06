@@ -35,7 +35,7 @@ def create_app(config_name: str | None = None) -> Flask:
     cors.init_app(
         app,
         resources={r'/api/*': {'origins': app.config['CORS_ORIGINS']}},
-        supports_credentials=False,
+        supports_credentials=True,
     )
 
     app.register_blueprint(api_bp)

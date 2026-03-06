@@ -43,6 +43,9 @@ class Config:
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'change-me')
     ADMIN_JWT_SECRET = os.getenv('ADMIN_JWT_SECRET', SECRET_KEY)
     ADMIN_JWT_EXPIRES_MINUTES = int(os.getenv('ADMIN_JWT_EXPIRES_MINUTES', '720'))
+    ADMIN_COOKIE_NAME = os.getenv('ADMIN_COOKIE_NAME', 'mafalda_admin_session')
+    ADMIN_COOKIE_SECURE = str_to_bool(os.getenv('ADMIN_COOKIE_SECURE'), default=False)
+    ADMIN_COOKIE_SAMESITE = os.getenv('ADMIN_COOKIE_SAMESITE', 'Lax')
 
     MP_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', '')
     MP_WEBHOOK_SECRET = os.getenv('MP_WEBHOOK_SECRET', '')

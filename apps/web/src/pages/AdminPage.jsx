@@ -7,16 +7,16 @@ import Footer from '../components/Footer';
 import Header from '../components/Header';
 import { siteConfig } from '../config/site';
 import { useShop } from '../context/ShopContext';
-import { apiGet, apiPost } from '../lib/api';
+import { apiPost } from '../lib/api';
 
 function AdminPage() {
   const navigate = useNavigate();
-  const { isAdminAuthenticated, applyAdminSession } = useShop();
+  const { adminReady, isAdminAuthenticated, applyAdminSession, refreshAdminSession } = useShop();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (isAdminAuthenticated) {
+  if (adminReady && isAdminAuthenticated) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -27,8 +27,8 @@ function AdminPage() {
 
     try {
       const loginResponse = await apiPost('/api/admin/auth/login', form);
-      const meResponse = await apiGet('/api/admin/me', { token: loginResponse.token });
-      applyAdminSession({ nextAdminToken: loginResponse.token, nextAdminUser: meResponse.user });
+      const nextAdminUser = loginResponse.user || await refreshAdminSession();
+      applyAdminSession({ nextAdminUser });
       navigate('/admin/dashboard', { replace: true });
     } catch (requestError) {
       setError(requestError.message || 'No se pudo iniciar sesion admin.');

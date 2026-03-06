@@ -44,7 +44,10 @@ function RequireCart({ children }) {
 }
 
 function RequireAdmin({ children }) {
-  const { isAdminAuthenticated } = useShop();
+  const { adminReady, isAdminAuthenticated } = useShop();
+  if (!adminReady) {
+    return null;
+  }
   return isAdminAuthenticated ? children : <Navigate to="/admin" replace />;
 }
 

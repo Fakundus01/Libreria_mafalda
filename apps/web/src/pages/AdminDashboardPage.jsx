@@ -21,22 +21,20 @@ function MetricCard({ label, value, tone = 'default' }) {
 }
 
 function AdminDashboardPage() {
-  const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
+  const { adminUser, checkingAccess, accessError } = useAdminAccess();
   const [metrics, setMetrics] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const loadDashboard = async () => {
-    if (!adminToken) return;
-
-    setLoading(true);
+        setLoading(true);
     setError('');
 
     try {
       const [metricsResponse, auditResponse] = await Promise.all([
-        apiGet('/api/admin/metrics', { token: adminToken }),
-        apiGet('/api/admin/audit-logs?limit=8', { token: adminToken }),
+        apiGet('/api/admin/metrics'),
+        apiGet('/api/admin/audit-logs?limit=8'),
       ]);
       setMetrics(metricsResponse.data || null);
       setAuditLogs(auditResponse.data || []);
@@ -48,9 +46,9 @@ function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (!adminToken || checkingAccess) return;
+    if (checkingAccess) return;
     loadDashboard();
-  }, [adminToken, checkingAccess]);
+  }, [checkingAccess]);
 
   if (checkingAccess) {
     return (

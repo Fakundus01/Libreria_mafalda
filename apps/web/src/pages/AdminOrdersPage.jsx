@@ -10,7 +10,7 @@ import { apiGet, apiPatch } from '../lib/api';
 import { formatCurrency, formatDateTime } from '../lib/format';
 
 function AdminOrdersPage() {
-  const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
+  const { adminUser, checkingAccess, accessError } = useAdminAccess();
   const [orders, setOrders] = useState([]);
   const [prints, setPrints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,14 +20,12 @@ function AdminOrdersPage() {
   const pendingPrints = useMemo(() => prints.filter((item) => ['RECEIVED', 'IN_PROGRESS'].includes(item.status)).length, [prints]);
 
   const loadData = async () => {
-    if (!adminToken) return;
-
-    setLoading(true);
+        setLoading(true);
     setError('');
     try {
       const [ordersResponse, printsResponse] = await Promise.all([
-        apiGet('/api/admin/orders', { token: adminToken }),
-        apiGet('/api/admin/prints', { token: adminToken }),
+        apiGet('/api/admin/orders'),
+        apiGet('/api/admin/prints'),
       ]);
       setOrders(ordersResponse.data || []);
       setPrints(printsResponse.data || []);
@@ -39,13 +37,13 @@ function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    if (!adminToken || checkingAccess) return;
+    if (checkingAccess) return;
     loadData();
-  }, [adminToken, checkingAccess]);
+  }, [checkingAccess]);
 
   const updateOrder = async (orderCode, status) => {
     try {
-      await apiPatch(`/api/admin/orders/${orderCode}`, { status }, { token: adminToken });
+      await apiPatch(`/api/admin/orders/${orderCode}`, { status });
       await loadData();
     } catch (requestError) {
       setError(requestError.message || 'No se pudo actualizar el pedido.');
@@ -54,7 +52,7 @@ function AdminOrdersPage() {
 
   const updateTransfer = async (orderCode, status) => {
     try {
-      await apiPatch(`/api/admin/payments/transfer/${orderCode}`, { status }, { token: adminToken });
+      await apiPatch(`/api/admin/payments/transfer/${orderCode}`, { status });
       await loadData();
     } catch (requestError) {
       setError(requestError.message || 'No se pudo actualizar la transferencia.');
@@ -63,7 +61,7 @@ function AdminOrdersPage() {
 
   const updatePrint = async (printCode, status) => {
     try {
-      await apiPatch(`/api/admin/prints/${printCode}`, { status }, { token: adminToken });
+      await apiPatch(`/api/admin/prints/${printCode}`, { status });
       await loadData();
     } catch (requestError) {
       setError(requestError.message || 'No se pudo actualizar la impresion.');

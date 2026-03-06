@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+﻿import { createContext, useContext, useEffect, useState } from 'react';
 import { testProfile } from '../config/site';
+import { apiGet, apiPost } from '../lib/api';
 
 const ShopContext = createContext(null);
 
@@ -7,8 +8,6 @@ const STORAGE_KEYS = {
   cart: 'mafalda_cart',
   token: 'mafalda_token',
   user: 'mafalda_user',
-  adminToken: 'mafalda_admin_token',
-  adminUser: 'mafalda_admin_user',
 };
 
 function readJson(key, fallback) {
@@ -24,8 +23,8 @@ export function ShopProvider({ children }) {
   const [cart, setCart] = useState(() => readJson(STORAGE_KEYS.cart, []));
   const [user, setUser] = useState(() => readJson(STORAGE_KEYS.user, null));
   const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '');
-  const [adminToken, setAdminToken] = useState(() => localStorage.getItem(STORAGE_KEYS.adminToken) || '');
-  const [adminUser, setAdminUser] = useState(() => readJson(STORAGE_KEYS.adminUser, null));
+  const [adminUser, setAdminUser] = useState(null);
+  const [adminReady, setAdminReady] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.cart, JSON.stringify(cart));
@@ -47,21 +46,33 @@ export function ShopProvider({ children }) {
     }
   }, [token]);
 
-  useEffect(() => {
-    if (adminToken) {
-      localStorage.setItem(STORAGE_KEYS.adminToken, adminToken);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.adminToken);
+  const clearAdminSession = async () => {
+    try {
+      await apiPost('/api/admin/auth/logout', {});
+    } catch {
+      // ignore logout transport failures and clear local admin state anyway
+    } finally {
+      setAdminUser(null);
+      setAdminReady(true);
     }
-  }, [adminToken]);
+  };
+
+  const refreshAdminSession = async () => {
+    try {
+      const response = await apiGet('/api/admin/me');
+      setAdminUser(response.user || null);
+      return response.user || null;
+    } catch {
+      setAdminUser(null);
+      return null;
+    } finally {
+      setAdminReady(true);
+    }
+  };
 
   useEffect(() => {
-    if (adminUser) {
-      localStorage.setItem(STORAGE_KEYS.adminUser, JSON.stringify(adminUser));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.adminUser);
-    }
-  }, [adminUser]);
+    refreshAdminSession();
+  }, []);
 
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
   const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
@@ -117,11 +128,12 @@ export function ShopProvider({ children }) {
   const applySession = ({ nextUser, nextToken }) => {
     setUser(nextUser);
     setToken(nextToken);
+    clearAdminSession();
   };
 
-  const applyAdminSession = ({ nextAdminToken, nextAdminUser }) => {
-    setAdminToken(nextAdminToken);
+  const applyAdminSession = ({ nextAdminUser }) => {
     setAdminUser(nextAdminUser);
+    setAdminReady(true);
   };
 
   const logout = () => {
@@ -129,10 +141,7 @@ export function ShopProvider({ children }) {
     setToken('');
   };
 
-  const logoutAdmin = () => {
-    setAdminToken('');
-    setAdminUser(null);
-  };
+  const logoutAdmin = clearAdminSession;
 
   const value = {
     cart,
@@ -147,11 +156,11 @@ export function ShopProvider({ children }) {
     isAuthenticated: Boolean(token && user),
     applySession,
     logout,
-    adminToken,
     adminUser,
-    isAdminAuthenticated: Boolean(adminToken && adminUser?.role === 'ADMIN'),
-    setAdminToken,
+    adminReady,
+    isAdminAuthenticated: Boolean(adminUser?.role === 'ADMIN'),
     applyAdminSession,
+    refreshAdminSession,
     logoutAdmin,
     customerProfile,
     testProfile,

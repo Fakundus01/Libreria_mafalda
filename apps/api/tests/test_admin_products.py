@@ -84,3 +84,20 @@ def test_admin_product_image_upload(client):
     payload = uploaded.get_json()['data']
     assert len(payload) == 1
     assert '/media/products/' in payload[0]['url']
+
+
+def test_admin_cookie_session_and_logout(client):
+    login = client.post('/api/admin/auth/login', json={'email': 'admin@test.com', 'password': 'secret123'})
+    assert login.status_code == 200
+    assert 'Set-Cookie' in login.headers
+    assert 'mafalda_admin_session=' in login.headers['Set-Cookie']
+
+    me = client.get('/api/admin/me')
+    assert me.status_code == 200
+    assert me.get_json()['user']['role'] == 'ADMIN'
+
+    logout = client.post('/api/admin/auth/logout')
+    assert logout.status_code == 200
+
+    me_after_logout = client.get('/api/admin/me')
+    assert me_after_logout.status_code == 401
