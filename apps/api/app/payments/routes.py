@@ -30,7 +30,7 @@ def create_preference():
 @payments_bp.post('/mercadopago/webhook')
 def webhook():
     payload = request.get_json(silent=True) or {}
-    webhook_secret = request.headers.get('x-webhook-secret')
+    webhook_secret = request.headers.get('x-webhook-secret') or request.headers.get('x-signature') or request.args.get('secret')
     try:
         result = process_webhook(payload, webhook_secret)
     except PaymentError as exc:

@@ -7,12 +7,28 @@ from app.models import ContactMessage, Order, OrderItem, OrderStatus, PrintReque
 from app.services.audit_service import list_audit_logs, log_audit_event
 from app.services.auth_service import ensure_admin_user, generate_token, verify_admin_credentials
 from app.services.email_service import send_print_status_changed
-from app.services.order_service import list_orders, set_order_status
+from app.services.order_service import set_order_status
 from app.services.payment_service import PaymentError, update_transfer_status
 from app.services.storage_service import StorageError, delete_local_media_by_url, save_product_images
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
+
+
+def _list_params(default_limit: int = 24, max_limit: int = 100):
+    limit = min(max(int(request.args.get('limit', default_limit)), 1), max_limit)
+    offset = max(int(request.args.get('offset', 0)), 0)
+    return limit, offset
+
+
+def _pagination_meta(total: int, limit: int, offset: int):
+    return {
+        'total': int(total),
+        'limit': int(limit),
+        'offset': int(offset),
+        'has_next': offset + limit < total,
+        'has_prev': offset > 0,
+    }
 
 
 def _product_query():
@@ -54,10 +70,19 @@ def admin_me():
 @admin_required
 def admin_orders():
     status = request.args.get('status')
-    limit = min(int(request.args.get('limit', 50)), 100)
-    offset = max(int(request.args.get('offset', 0)), 0)
-    orders = list_orders(status=status, limit=limit, offset=offset)
-    return jsonify({'ok': True, 'data': [order.to_dict() for order in orders]})
+    q = (request.args.get('q') or '').strip().lower()
+    limit, offset = _list_params(default_limit=20, max_limit=100)
+
+    query = Order.query.order_by(Order.created_at.desc())
+    if status:
+        query = query.filter(Order.status == status)
+    if q:
+        like = f'%{q}%'
+        query = query.filter(or_(Order.order_code.ilike(like), Order.customer_name.ilike(like), Order.customer_email.ilike(like)))
+
+    total = query.count()
+    orders = query.offset(offset).limit(limit).all()
+    return jsonify({'ok': True, 'data': [order.to_dict() for order in orders], 'meta': _pagination_meta(total, limit, offset)})
 
 
 @admin_bp.get('/orders/<string:order_code>')
@@ -103,10 +128,11 @@ def admin_transfer_status(order_code: str):
 @admin_bp.get('/products')
 @admin_required
 def admin_products():
-    limit = min(int(request.args.get('limit', 100)), 200)
-    offset = max(int(request.args.get('offset', 0)), 0)
-    products = _product_query().offset(offset).limit(limit).all()
-    return jsonify({'ok': True, 'data': [product.to_dict() for product in products]})
+    limit, offset = _list_params(default_limit=18, max_limit=200)
+    query = _product_query()
+    total = query.count()
+    products = query.offset(offset).limit(limit).all()
+    return jsonify({'ok': True, 'data': [product.to_dict() for product in products], 'meta': _pagination_meta(total, limit, offset)})
 
 
 @admin_bp.post('/products')
@@ -243,7 +269,10 @@ def admin_delete_product_image(image_id: int):
 @admin_bp.get('/customers')
 @admin_required
 def admin_customers():
-    rows = (
+    q = (request.args.get('q') or '').strip().lower()
+    limit, offset = _list_params(default_limit=12, max_limit=100)
+
+    query = (
         db.session.query(
             User,
             db.func.count(Order.id).label('orders_count'),
@@ -254,8 +283,14 @@ def admin_customers():
         .filter(User.role == 'CUSTOMER')
         .group_by(User.id)
         .order_by(User.created_at.desc())
-        .all()
     )
+
+    if q:
+        like = f'%{q}%'
+        query = query.filter(or_(User.full_name.ilike(like), User.email.ilike(like), User.phone.ilike(like)))
+
+    total = query.count()
+    rows = query.offset(offset).limit(limit).all()
 
     data = []
     for user, orders_count, total_spent, last_order_at in rows:
@@ -268,21 +303,42 @@ def admin_customers():
             }
         )
 
-    return jsonify({'ok': True, 'data': data})
+    return jsonify({'ok': True, 'data': data, 'meta': _pagination_meta(total, limit, offset)})
 
 
 @admin_bp.get('/messages')
 @admin_required
 def admin_messages():
-    items = ContactMessage.query.order_by(ContactMessage.created_at.desc()).all()
-    return jsonify({'ok': True, 'data': [item.to_dict() for item in items]})
+    q = (request.args.get('q') or '').strip().lower()
+    limit, offset = _list_params(default_limit=12, max_limit=100)
+
+    query = ContactMessage.query.order_by(ContactMessage.created_at.desc())
+    if q:
+        like = f'%{q}%'
+        query = query.filter(or_(ContactMessage.name.ilike(like), ContactMessage.email.ilike(like), ContactMessage.message.ilike(like)))
+
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
+    return jsonify({'ok': True, 'data': [item.to_dict() for item in items], 'meta': _pagination_meta(total, limit, offset)})
 
 
 @admin_bp.get('/prints')
 @admin_required
 def admin_prints():
-    items = PrintRequest.query.order_by(PrintRequest.created_at.desc()).all()
-    return jsonify({'ok': True, 'data': [item.to_dict() for item in items]})
+    status = request.args.get('status')
+    q = (request.args.get('q') or '').strip().lower()
+    limit, offset = _list_params(default_limit=20, max_limit=100)
+
+    query = PrintRequest.query.order_by(PrintRequest.created_at.desc())
+    if status:
+        query = query.filter(PrintRequest.status == status)
+    if q:
+        like = f'%{q}%'
+        query = query.filter(or_(PrintRequest.print_code.ilike(like), PrintRequest.customer_name.ilike(like), PrintRequest.customer_email.ilike(like)))
+
+    total = query.count()
+    items = query.offset(offset).limit(limit).all()
+    return jsonify({'ok': True, 'data': [item.to_dict() for item in items], 'meta': _pagination_meta(total, limit, offset)})
 
 
 @admin_bp.patch('/prints/<string:print_code>')

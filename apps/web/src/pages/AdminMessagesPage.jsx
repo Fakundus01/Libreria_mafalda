@@ -1,24 +1,23 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import AdminLayout from '../components/admin/AdminLayout';
+import AdminPagination from '../components/admin/AdminPagination';
 import Card from '../components/Card';
 import PageLoader from '../components/PageLoader';
 import { useAdminAccess } from '../hooks/useAdminAccess';
 import { apiGet } from '../lib/api';
 import { formatDateTime } from '../lib/format';
 
+const PAGE_SIZE = 8;
+
 function AdminMessagesPage() {
   const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
   const [messages, setMessages] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const filteredMessages = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return messages;
-    return messages.filter((item) => [item.name, item.email, item.message].join(' ').toLowerCase().includes(term));
-  }, [messages, query]);
 
   const loadMessages = async () => {
     if (!adminToken) return;
@@ -26,8 +25,14 @@ function AdminMessagesPage() {
     setError('');
 
     try {
-      const response = await apiGet('/api/admin/messages', { token: adminToken });
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (query.trim()) params.set('q', query.trim());
+      const response = await apiGet(`/api/admin/messages?${params.toString()}`, { token: adminToken });
       setMessages(response.data || []);
+      setMeta(response.meta || null);
     } catch (requestError) {
       setError(requestError.message || 'No se pudieron cargar los mensajes.');
     } finally {
@@ -38,7 +43,7 @@ function AdminMessagesPage() {
   useEffect(() => {
     if (!adminToken || checkingAccess) return;
     loadMessages();
-  }, [adminToken, checkingAccess]);
+  }, [adminToken, checkingAccess, page, query]);
 
   if (checkingAccess) {
     return (
@@ -60,9 +65,17 @@ function AdminMessagesPage() {
       <Card className="mb-6 p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Busqueda</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-          <input className="input-field" placeholder="Buscar por nombre, mail o contenido" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input
+            className="input-field"
+            placeholder="Buscar por nombre, mail o contenido"
+            value={query}
+            onChange={(event) => {
+              setPage(0);
+              setQuery(event.target.value);
+            }}
+          />
           <div className="rounded-full bg-[#fff2e6] px-5 py-3 text-sm font-semibold text-ink">
-            {filteredMessages.length} mensajes
+            {meta?.total ?? messages.length} mensajes
           </div>
         </div>
       </Card>
@@ -70,7 +83,7 @@ function AdminMessagesPage() {
       {loading ? <PageLoader title="Cargando mensajes" message="Estamos leyendo las consultas del formulario de contacto." /> : null}
 
       <section className="grid gap-4">
-        {filteredMessages.map((message) => (
+        {messages.map((message) => (
           <Card key={message.id} className="p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -86,12 +99,19 @@ function AdminMessagesPage() {
           </Card>
         ))}
 
-        {!loading && filteredMessages.length === 0 ? (
+        {!loading && messages.length === 0 ? (
           <Card>
             <p className="text-sm text-ink/65">No se encontraron mensajes para ese filtro.</p>
           </Card>
         ) : null}
       </section>
+
+      <AdminPagination
+        meta={meta}
+        loading={loading}
+        onPrevious={() => setPage((current) => Math.max(current - 1, 0))}
+        onNext={() => setPage((current) => current + 1)}
+      />
     </AdminLayout>
   );
 }

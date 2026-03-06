@@ -31,6 +31,7 @@ class Config:
     SITE_ADDRESS = os.getenv('SITE_ADDRESS', 'Estrada 2380, B1650 Villa Maipu, Provincia de Buenos Aires')
     SITE_PHONE = os.getenv('SITE_PHONE', '01131875770')
     SITE_EMAIL = os.getenv('SITE_EMAIL', 'mafaldalibreria@hotmail.com')
+    SITE_URL = os.getenv('SITE_URL', '').rstrip('/')
     SITE_HOURS = [
         {'day': 'Lunes a viernes', 'time': '9:00 a 15:00'},
         {'day': 'Sabados', 'time': '9:00 a 13:00'},
@@ -46,6 +47,10 @@ class Config:
     MP_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', '')
     MP_WEBHOOK_SECRET = os.getenv('MP_WEBHOOK_SECRET', '')
     MP_BASE_URL = os.getenv('MP_BASE_URL', 'https://api.mercadopago.com')
+    MP_SUCCESS_URL = os.getenv('MP_SUCCESS_URL', f'{SITE_URL}/checkout/success' if SITE_URL else '')
+    MP_FAILURE_URL = os.getenv('MP_FAILURE_URL', f'{SITE_URL}/checkout/failure' if SITE_URL else '')
+    MP_PENDING_URL = os.getenv('MP_PENDING_URL', f'{SITE_URL}/checkout/failure' if SITE_URL else '')
+    MP_WEBHOOK_URL = os.getenv('MP_WEBHOOK_URL', f'{SITE_URL}/api/payments/mercadopago/webhook' if SITE_URL else '')
 
     EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'log')
     EMAIL_FROM = os.getenv('EMAIL_FROM', 'no-reply@libreriamafalda.local')
@@ -54,6 +59,8 @@ class Config:
     EMAIL_USER = os.getenv('EMAIL_USER', '')
     EMAIL_PASS = os.getenv('EMAIL_PASS', '')
 
+    STORAGE_PROVIDER = os.getenv('STORAGE_PROVIDER', 'local').lower()
+    MEDIA_BASE_URL = os.getenv('MEDIA_BASE_URL', f'{SITE_URL}/media' if SITE_URL else '').rstrip('/') or None
     UPLOAD_ROOT = os.getenv('UPLOAD_ROOT')
     MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', str(8 * 1024 * 1024)))
 

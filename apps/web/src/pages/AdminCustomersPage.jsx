@@ -1,24 +1,23 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import AdminLayout from '../components/admin/AdminLayout';
+import AdminPagination from '../components/admin/AdminPagination';
 import Card from '../components/Card';
 import PageLoader from '../components/PageLoader';
 import { useAdminAccess } from '../hooks/useAdminAccess';
 import { apiGet } from '../lib/api';
 import { formatCurrency, formatDateTime } from '../lib/format';
 
+const PAGE_SIZE = 8;
+
 function AdminCustomersPage() {
   const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
   const [customers, setCustomers] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const filteredCustomers = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return customers;
-    return customers.filter((item) => [item.full_name, item.email, item.phone].join(' ').toLowerCase().includes(term));
-  }, [customers, query]);
 
   const loadCustomers = async () => {
     if (!adminToken) return;
@@ -26,8 +25,14 @@ function AdminCustomersPage() {
     setError('');
 
     try {
-      const response = await apiGet('/api/admin/customers', { token: adminToken });
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
+      if (query.trim()) params.set('q', query.trim());
+      const response = await apiGet(`/api/admin/customers?${params.toString()}`, { token: adminToken });
       setCustomers(response.data || []);
+      setMeta(response.meta || null);
     } catch (requestError) {
       setError(requestError.message || 'No se pudieron cargar los clientes.');
     } finally {
@@ -38,7 +43,7 @@ function AdminCustomersPage() {
   useEffect(() => {
     if (!adminToken || checkingAccess) return;
     loadCustomers();
-  }, [adminToken, checkingAccess]);
+  }, [adminToken, checkingAccess, page, query]);
 
   if (checkingAccess) {
     return (
@@ -60,17 +65,25 @@ function AdminCustomersPage() {
       <Card className="mb-6 p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Busqueda</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-          <input className="input-field" placeholder="Buscar por nombre, email o telefono" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input
+            className="input-field"
+            placeholder="Buscar por nombre, email o telefono"
+            value={query}
+            onChange={(event) => {
+              setPage(0);
+              setQuery(event.target.value);
+            }}
+          />
           <div className="rounded-full bg-[#fff2e6] px-5 py-3 text-sm font-semibold text-ink">
-            {filteredCustomers.length} clientes
+            {meta?.total ?? customers.length} clientes
           </div>
         </div>
       </Card>
 
-      {loading ? <PageLoader title="Cargando clientes" message="Estamos leyendo el padrón de clientes y sus compras." /> : null}
+      {loading ? <PageLoader title="Cargando clientes" message="Estamos leyendo el padron de clientes y sus compras." /> : null}
 
       <section className="grid gap-4 md:grid-cols-2">
-        {filteredCustomers.map((customer) => (
+        {customers.map((customer) => (
           <Card key={customer.id} className="p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -90,12 +103,19 @@ function AdminCustomersPage() {
           </Card>
         ))}
 
-        {!loading && filteredCustomers.length === 0 ? (
+        {!loading && customers.length === 0 ? (
           <Card>
             <p className="text-sm text-ink/65">No se encontraron clientes con ese criterio.</p>
           </Card>
         ) : null}
       </section>
+
+      <AdminPagination
+        meta={meta}
+        loading={loading}
+        onPrevious={() => setPage((current) => Math.max(current - 1, 0))}
+        onNext={() => setPage((current) => current + 1)}
+      />
     </AdminLayout>
   );
 }

@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import AdminLayout from '../components/admin/AdminLayout';
+import AdminPagination from '../components/admin/AdminPagination';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import PageLoader from '../components/PageLoader';
@@ -8,6 +9,8 @@ import StatusPill from '../components/StatusPill';
 import { useAdminAccess } from '../hooks/useAdminAccess';
 import { apiDelete, apiGet, apiPost, apiPut } from '../lib/api';
 import { formatCurrency } from '../lib/format';
+
+const PAGE_SIZE = 6;
 
 const emptyProductForm = {
   title: '',
@@ -25,6 +28,8 @@ const emptyProductForm = {
 function AdminProductsPage() {
   const { adminToken, adminUser, checkingAccess, accessError } = useAdminAccess();
   const [products, setProducts] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [productForm, setProductForm] = useState(emptyProductForm);
@@ -43,12 +48,15 @@ function AdminProductsPage() {
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(page * PAGE_SIZE),
+      });
       if (query.trim()) params.set('q', query.trim());
       if (activeFilter !== 'all') params.set('active', activeFilter);
-      const suffix = params.toString() ? `?${params.toString()}` : '';
-      const response = await apiGet(`/api/admin/products${suffix}`, { token: adminToken });
+      const response = await apiGet(`/api/admin/products?${params.toString()}`, { token: adminToken });
       setProducts(response.data || []);
+      setMeta(response.meta || null);
     } catch (requestError) {
       setError(requestError.message || 'No se pudieron cargar los productos.');
     } finally {
@@ -59,7 +67,7 @@ function AdminProductsPage() {
   useEffect(() => {
     if (!adminToken || checkingAccess) return;
     loadProducts();
-  }, [adminToken, checkingAccess, query, activeFilter]);
+  }, [adminToken, checkingAccess, page, query, activeFilter]);
 
   const resetProductEditor = () => {
     setEditingProductId(null);
@@ -179,18 +187,18 @@ function AdminProductsPage() {
       <section className="mb-6 grid gap-4 md:grid-cols-3">
         <Card>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Catalogo</p>
-          <p className="mt-3 font-display text-5xl text-ink">{products.length}</p>
-          <p className="mt-2 text-sm text-ink/65">Productos listados con los filtros actuales.</p>
+          <p className="mt-3 font-display text-5xl text-ink">{meta?.total ?? products.length}</p>
+          <p className="mt-2 text-sm text-ink/65">Productos encontrados para los filtros actuales.</p>
         </Card>
         <Card>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Activos</p>
           <p className="mt-3 font-display text-5xl text-ink">{products.filter((item) => item.is_active).length}</p>
-          <p className="mt-2 text-sm text-ink/65">Disponibles para mostrarse en la tienda.</p>
+          <p className="mt-2 text-sm text-ink/65">Disponibles en esta pagina del listado.</p>
         </Card>
         <Card className="bg-[#fff2e6]">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Stock bajo</p>
           <p className="mt-3 font-display text-5xl text-ink">{lowStockCount}</p>
-          <p className="mt-2 text-sm text-ink/65">Productos que conviene reponer pronto.</p>
+          <p className="mt-2 text-sm text-ink/65">Productos a reponer dentro de esta pagina.</p>
         </Card>
       </section>
 
@@ -266,8 +274,23 @@ function AdminProductsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-coral/80">Busqueda</p>
           <h2 className="mt-2 font-display text-4xl text-ink">Filtrar catalogo</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-[1fr_auto]">
-            <input className="input-field" placeholder="Buscar por nombre, categoria, tags o SKU" value={query} onChange={(event) => setQuery(event.target.value)} />
-            <select className="input-field" value={activeFilter} onChange={(event) => setActiveFilter(event.target.value)}>
+            <input
+              className="input-field"
+              placeholder="Buscar por nombre, categoria, tags o SKU"
+              value={query}
+              onChange={(event) => {
+                setPage(0);
+                setQuery(event.target.value);
+              }}
+            />
+            <select
+              className="input-field"
+              value={activeFilter}
+              onChange={(event) => {
+                setPage(0);
+                setActiveFilter(event.target.value);
+              }}
+            >
               <option value="all">Todos</option>
               <option value="true">Solo activos</option>
               <option value="false">Solo ocultos</option>
@@ -339,6 +362,13 @@ function AdminProductsPage() {
           </Card>
         ) : null}
       </section>
+
+      <AdminPagination
+        meta={meta}
+        loading={loading}
+        onPrevious={() => setPage((current) => Math.max(current - 1, 0))}
+        onNext={() => setPage((current) => current + 1)}
+      />
     </AdminLayout>
   );
 }
