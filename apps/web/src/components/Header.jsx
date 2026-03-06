@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ecommerceEnabled } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import Button from './Button';
 import Container from './Container';
 

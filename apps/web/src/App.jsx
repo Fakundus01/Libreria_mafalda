@@ -1,6 +1,6 @@
 ﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import { ecommerceEnabled } from './config/site';
-import { useShop } from './context/ShopContext';
+import { useShop } from './hooks/useShop';
 import AdminCustomersPage from './pages/AdminCustomersPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminMessagesPage from './pages/AdminMessagesPage';
@@ -29,12 +29,18 @@ function EcommerceRoute({ children }) {
 }
 
 function RequireAuth({ children }) {
-  const { isAuthenticated } = useShop();
+  const { authReady, isAuthenticated } = useShop();
+  if (!authReady) {
+    return null;
+  }
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 function RequireGuest({ children }) {
-  const { isAuthenticated } = useShop();
+  const { authReady, isAuthenticated } = useShop();
+  if (!authReady) {
+    return null;
+  }
   return isAuthenticated ? <Navigate to="/profile" replace /> : children;
 }
 

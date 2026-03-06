@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import Header from '../components/Header';
 import PageLoader from '../components/PageLoader';
 import { siteConfig } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import { apiGet } from '../lib/api';
 import { formatCurrency } from '../lib/format';
 

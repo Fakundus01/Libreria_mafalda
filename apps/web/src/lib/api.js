@@ -1,20 +1,18 @@
 ﻿import { apiBaseUrl } from '../config/site';
 
-function buildHeaders({ auth = false, token, headers = {}, hasJsonBody = false }) {
-  const authToken = token || (auth ? localStorage.getItem('mafalda_token') : '');
+function buildHeaders({ headers = {}, hasJsonBody = false }) {
   return {
     ...(hasJsonBody ? { 'Content-Type': 'application/json' } : {}),
-    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...headers,
   };
 }
 
-async function apiRequest(path, { method = 'GET', body, auth = false, token, headers = {} } = {}) {
+async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
     credentials: 'include',
-    headers: buildHeaders({ auth, token, headers, hasJsonBody: body !== undefined && !isFormData }),
+    headers: buildHeaders({ headers, hasJsonBody: body !== undefined && !isFormData }),
     body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 

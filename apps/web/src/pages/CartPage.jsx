@@ -6,7 +6,7 @@ import EmptyState from '../components/EmptyState';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import { siteConfig } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import { formatCurrency } from '../lib/format';
 
 function CartPage() {

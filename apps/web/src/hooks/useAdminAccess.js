@@ -1,4 +1,4 @@
-﻿import { useShop } from '../context/ShopContext';
+﻿import { useShop } from '../hooks/useShop';
 
 export function useAdminAccess() {
   const { adminUser, adminReady, refreshAdminSession, logoutAdmin } = useShop();

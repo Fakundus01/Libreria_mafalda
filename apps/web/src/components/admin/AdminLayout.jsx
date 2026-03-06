@@ -1,6 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { siteConfig } from '../../config/site';
-import { useShop } from '../../context/ShopContext';
+import { useShop } from '../../hooks/useShop';
 import Button from '../Button';
 import Card from '../Card';
 import Container from '../Container';

@@ -5,13 +5,22 @@ from flask import current_app, g, jsonify, request
 from app.services.auth_service import AuthError, decode_token
 
 
+def _resolve_token(header_name='Authorization', cookie_name=None) -> str:
+    auth_header = request.headers.get(header_name, '')
+    header_token = auth_header.replace('Bearer ', '').strip()
+    if header_token:
+        return header_token
+    if cookie_name:
+        return request.cookies.get(cookie_name, '').strip()
+    return ''
+
+
 def auth_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        auth_header = request.headers.get('Authorization', '')
-        token = auth_header.replace('Bearer ', '').strip()
+        token = _resolve_token(cookie_name=current_app.config.get('CUSTOMER_COOKIE_NAME', 'mafalda_customer_session'))
         if not token:
-            return jsonify({'ok': False, 'error': {'code': 'unauthorized', 'message': 'Token requerido.'}}), 401
+            return jsonify({'ok': False, 'error': {'code': 'unauthorized', 'message': 'Sesion requerida.'}}), 401
         try:
             g.auth = decode_token(token)
         except AuthError as exc:
@@ -22,12 +31,7 @@ def auth_required(fn):
 
 
 def _resolve_admin_token() -> str:
-    auth_header = request.headers.get('Authorization', '')
-    header_token = auth_header.replace('Bearer ', '').strip()
-    if header_token:
-        return header_token
-    cookie_name = current_app.config.get('ADMIN_COOKIE_NAME', 'mafalda_admin_session')
-    return request.cookies.get(cookie_name, '').strip()
+    return _resolve_token(cookie_name=current_app.config.get('ADMIN_COOKIE_NAME', 'mafalda_admin_session'))
 
 
 def admin_required(fn):

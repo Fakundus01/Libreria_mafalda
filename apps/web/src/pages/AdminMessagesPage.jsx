@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminPagination from '../components/admin/AdminPagination';
@@ -19,7 +19,7 @@ function AdminMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -37,12 +37,12 @@ function AdminMessagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, query]);
 
   useEffect(() => {
     if (checkingAccess) return;
     loadMessages();
-  }, [checkingAccess, page, query]);
+  }, [checkingAccess, loadMessages]);
 
   if (checkingAccess) {
     return (

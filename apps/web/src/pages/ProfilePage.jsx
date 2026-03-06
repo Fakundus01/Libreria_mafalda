@@ -9,7 +9,7 @@ import Header from '../components/Header';
 import PageLoader from '../components/PageLoader';
 import StatusPill from '../components/StatusPill';
 import { siteConfig } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import { apiGet } from '../lib/api';
 import { formatCurrency } from '../lib/format';
 
@@ -24,8 +24,8 @@ function ProfilePage() {
     let active = true;
 
     Promise.all([
-      apiGet('/api/auth/me', { auth: true }),
-      apiGet('/api/my/orders', { auth: true }),
+      apiGet('/api/auth/me'),
+      apiGet('/api/my/orders'),
     ])
       .then(([meRes, ordersRes]) => {
         if (!active) return;

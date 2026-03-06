@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import Header from '../components/Header';
 import ProductCard from '../components/ProductCard';
 import { siteConfig } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import { apiGet } from '../lib/api';
 import { formatCurrency } from '../lib/format';
 

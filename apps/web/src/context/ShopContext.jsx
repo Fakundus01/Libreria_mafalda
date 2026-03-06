@@ -1,13 +1,10 @@
-﻿import { createContext, useContext, useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { testProfile } from '../config/site';
 import { apiGet, apiPost } from '../lib/api';
-
-const ShopContext = createContext(null);
+import { ShopContext } from './shop-context';
 
 const STORAGE_KEYS = {
   cart: 'mafalda_cart',
-  token: 'mafalda_token',
-  user: 'mafalda_user',
 };
 
 function readJson(key, fallback) {
@@ -21,30 +18,14 @@ function readJson(key, fallback) {
 
 export function ShopProvider({ children }) {
   const [cart, setCart] = useState(() => readJson(STORAGE_KEYS.cart, []));
-  const [user, setUser] = useState(() => readJson(STORAGE_KEYS.user, null));
-  const [token, setToken] = useState(() => localStorage.getItem(STORAGE_KEYS.token) || '');
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [adminReady, setAdminReady] = useState(false);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.cart, JSON.stringify(cart));
   }, [cart]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.user);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem(STORAGE_KEYS.token, token);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.token);
-    }
-  }, [token]);
 
   const clearAdminSession = async () => {
     try {
@@ -54,6 +35,19 @@ export function ShopProvider({ children }) {
     } finally {
       setAdminUser(null);
       setAdminReady(true);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      const response = await apiGet('/api/auth/me');
+      setUser(response.user || null);
+      return response.user || null;
+    } catch {
+      setUser(null);
+      return null;
+    } finally {
+      setAuthReady(true);
     }
   };
 
@@ -71,6 +65,7 @@ export function ShopProvider({ children }) {
   };
 
   useEffect(() => {
+    refreshSession();
     refreshAdminSession();
   }, []);
 
@@ -125,9 +120,9 @@ export function ShopProvider({ children }) {
 
   const clearCart = () => setCart([]);
 
-  const applySession = ({ nextUser, nextToken }) => {
+  const applySession = ({ nextUser }) => {
     setUser(nextUser);
-    setToken(nextToken);
+    setAuthReady(true);
     if (nextUser?.role === 'ADMIN') {
       setAdminUser(nextUser);
       setAdminReady(true);
@@ -141,10 +136,16 @@ export function ShopProvider({ children }) {
     setAdminReady(true);
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken('');
-    clearAdminSession();
+  const logout = async () => {
+    try {
+      await apiPost('/api/auth/logout', {});
+    } catch {
+      // ignore logout transport failures and clear local session anyway
+    } finally {
+      setUser(null);
+      setAuthReady(true);
+      clearAdminSession();
+    }
   };
 
   const logoutAdmin = clearAdminSession;
@@ -158,9 +159,10 @@ export function ShopProvider({ children }) {
     removeFromCart,
     clearCart,
     user,
-    token,
-    isAuthenticated: Boolean(token && user),
+    authReady,
+    isAuthenticated: Boolean(user),
     applySession,
+    refreshSession,
     logout,
     adminUser,
     adminReady,
@@ -175,10 +177,3 @@ export function ShopProvider({ children }) {
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
 }
 
-export function useShop() {
-  const context = useContext(ShopContext);
-  if (!context) {
-    throw new Error('useShop must be used inside ShopProvider');
-  }
-  return context;
-}

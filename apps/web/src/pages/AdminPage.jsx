@@ -6,7 +6,7 @@ import Container from '../components/Container';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import { siteConfig } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import { apiPost } from '../lib/api';
 
 function AdminPage() {

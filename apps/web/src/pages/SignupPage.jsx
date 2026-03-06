@@ -6,7 +6,7 @@ import Container from '../components/Container';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import { siteConfig } from '../config/site';
-import { useShop } from '../context/ShopContext';
+import { useShop } from '../hooks/useShop';
 import { apiPost } from '../lib/api';
 
 function SignupPage() {
@@ -27,7 +27,7 @@ function SignupPage() {
     setLoading(true);
     try {
       const res = await apiPost('/api/auth/signup', form);
-      applySession({ nextUser: res.user, nextToken: res.token });
+      applySession({ nextUser: res.user });
       navigate('/profile');
     } catch (requestError) {
       setError(requestError.message || 'No se pudo registrar la cuenta.');

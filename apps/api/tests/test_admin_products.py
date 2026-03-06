@@ -112,7 +112,8 @@ def test_admin_login_via_customer_auth_sets_admin_cookie(client):
     login = client.post('/api/auth/login', json={'email': 'admin@test.com', 'password': 'secret123'})
     assert login.status_code == 200
     assert login.get_json()['user']['role'] == 'ADMIN'
-    assert 'mafalda_admin_session=' in login.headers.get('Set-Cookie', '')
+    set_cookies = ' '.join(login.headers.getlist('Set-Cookie'))
+    assert 'mafalda_admin_session=' in set_cookies
 
     me = client.get('/api/admin/me')
     assert me.status_code == 200

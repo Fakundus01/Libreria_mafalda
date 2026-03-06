@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminPagination from '../components/admin/AdminPagination';
@@ -42,8 +42,8 @@ function AdminProductsPage() {
 
   const lowStockCount = useMemo(() => products.filter((item) => Number(item.stock) <= 5).length, [products]);
 
-  const loadProducts = async () => {
-        setLoading(true);
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams({
@@ -60,12 +60,12 @@ function AdminProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeFilter, page, query]);
 
   useEffect(() => {
     if (checkingAccess) return;
     loadProducts();
-  }, [checkingAccess, page, query, activeFilter]);
+  }, [checkingAccess, loadProducts]);
 
   const resetProductEditor = () => {
     setEditingProductId(null);
