@@ -101,3 +101,19 @@ def test_admin_cookie_session_and_logout(client):
 
     me_after_logout = client.get('/api/admin/me')
     assert me_after_logout.status_code == 401
+
+
+def test_admin_login_via_customer_auth_sets_admin_cookie(client):
+    bootstrap = client.post('/api/admin/auth/login', json={'email': 'admin@test.com', 'password': 'secret123'})
+    assert bootstrap.status_code == 200
+
+    client.post('/api/admin/auth/logout')
+
+    login = client.post('/api/auth/login', json={'email': 'admin@test.com', 'password': 'secret123'})
+    assert login.status_code == 200
+    assert login.get_json()['user']['role'] == 'ADMIN'
+    assert 'mafalda_admin_session=' in login.headers.get('Set-Cookie', '')
+
+    me = client.get('/api/admin/me')
+    assert me.status_code == 200
+    assert me.get_json()['user']['role'] == 'ADMIN'

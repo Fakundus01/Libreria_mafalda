@@ -1,4 +1,4 @@
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from app.core.auth import auth_required
 from app.models import User
@@ -42,7 +42,20 @@ def login():
         return jsonify({'ok': False, 'error': {'code': 'login_error', 'message': str(exc)}}), 401
 
     token = generate_token(user_id=user.id, email=user.email, role=user.role)
-    return jsonify({'ok': True, 'token': token, 'user': user.to_dict()})
+    response = jsonify({'ok': True, 'token': token, 'user': user.to_dict()})
+
+    if user.role == 'ADMIN':
+        response.set_cookie(
+            current_app.config['ADMIN_COOKIE_NAME'],
+            token,
+            max_age=current_app.config['ADMIN_JWT_EXPIRES_MINUTES'] * 60,
+            httponly=True,
+            secure=current_app.config['ADMIN_COOKIE_SECURE'],
+            samesite=current_app.config['ADMIN_COOKIE_SAMESITE'],
+            path='/',
+        )
+
+    return response
 
 
 @auth_bp.get('/me')

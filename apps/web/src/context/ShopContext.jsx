@@ -128,7 +128,12 @@ export function ShopProvider({ children }) {
   const applySession = ({ nextUser, nextToken }) => {
     setUser(nextUser);
     setToken(nextToken);
-    clearAdminSession();
+    if (nextUser?.role === 'ADMIN') {
+      setAdminUser(nextUser);
+      setAdminReady(true);
+    } else {
+      clearAdminSession();
+    }
   };
 
   const applyAdminSession = ({ nextAdminUser }) => {
@@ -139,6 +144,7 @@ export function ShopProvider({ children }) {
   const logout = () => {
     setUser(null);
     setToken('');
+    clearAdminSession();
   };
 
   const logoutAdmin = clearAdminSession;
